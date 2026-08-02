@@ -15,6 +15,8 @@ export const REDIRECTOR_TIMEOUT_MS = 15_000;
 export const RECONNECT_BASE_MS = 2_000;
 export const RECONNECT_MAX_MS = 30_000;
 
+export const DEVICE_SELECT_RETRY_MS = 10_000;
+
 export const MAX_EVENTS = 500;
 export const MAX_ARTIST_CACHE_ENTRIES = 200;
 

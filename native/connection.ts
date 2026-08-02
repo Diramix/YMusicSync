@@ -11,6 +11,7 @@ import { randomUUID } from "node:crypto";
 
 import type { YnisonDevice, YnisonState } from "../types";
 import {
+    DEVICE_SELECT_RETRY_MS,
     DEVICE_TYPE_CODE,
     HUB_PATH,
     RECONNECT_BASE_MS,
@@ -180,7 +181,13 @@ function autoSelectDevice(incoming: YnisonState): void {
     if (state.selectedDeviceId && incoming.active_device_id_optional === state.selectedDeviceId) {
         state.selectedDeviceAt = 0;
     }
-    if (state.selectedDeviceId || (incoming.active_device_id_optional && !isSelfDevice(incoming.active_device_id_optional))) return;
+    if (state.selectedDeviceId) {
+        if (state.selectedDeviceAt && Date.now() - state.selectedDeviceAt < DEVICE_SELECT_RETRY_MS) {
+            state.socket?.send(wrapRequest({ update_active_device: { device_id_optional: state.selectedDeviceId } }));
+        }
+        return;
+    }
+    if (incoming.active_device_id_optional && !isSelfDevice(incoming.active_device_id_optional)) return;
 
     const target = devices.find(playable);
     if (!target?.info?.device_id) return;

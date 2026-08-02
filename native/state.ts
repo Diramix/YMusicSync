@@ -16,6 +16,7 @@ export const state = {
     lastSnapshot: null as PlayerSnapshot | null,
     mutedVolume: 0,
     selectedDeviceId: "",
+    selectedDeviceAt: 0,
     deviceId: "",
     reconnectTimer: null as NodeJS.Timeout | null,
     reconnectAttempts: 0,

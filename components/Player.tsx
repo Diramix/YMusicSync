@@ -62,7 +62,7 @@ export function YMusicSyncPlayer() {
     if (!snapshot?.trackId || !hasPlayed || hidden) return null;
 
     const target = snapshot.devices.find(device => device.id === snapshot.activeDeviceId);
-    const idle = !target?.canBePlayer;
+    const idle = !snapshot.activeDeviceId || (target !== undefined && !target.canBePlayer);
 
     return (
         <section className={cl("root")} aria-label={TEXT.playerLabel}>

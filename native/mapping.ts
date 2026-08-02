@@ -99,8 +99,8 @@ export function targetDevice(ynisonState: YnisonState): YnisonDevice | null {
     const byId = (id: string) => (id && !isSelfDevice(id)
         ? devices.find(device => device.info?.device_id === id) ?? null
         : null);
-    return byId(ynisonState.active_device_id_optional ?? "")
-        ?? byId(state.selectedDeviceId)
+    return byId(state.selectedDeviceId)
+        ?? byId(ynisonState.active_device_id_optional ?? "")
         ?? devices.find(device =>
             !isSelfDevice(device.info?.device_id)
             && device.capabilities?.can_be_player !== false) ?? null;
@@ -112,25 +112,24 @@ export function deviceVolume(device: YnisonDevice | null): number {
     return Math.min(1, Math.max(0, raw > 1 ? raw / 100 : raw));
 }
 
-function remoteDevices(devices: YnisonDevice[]): PlayerDevice[] {
+function remoteDevices(devices: YnisonDevice[], activeId: string): PlayerDevice[] {
     const byTitle = new Map<string, PlayerDevice>();
 
     for (const device of devices) {
         const id = String(device.info?.device_id ?? "");
-        if (!id || isSelfDevice(id) || device.is_shadow) continue;
+        if (!id || isSelfDevice(id)) continue;
+        if (device.is_shadow && id !== activeId) continue;
 
         const entry = {
             id,
             title: String(device.info?.title ?? device.info?.app_name ?? id),
-            canBePlayer: device.capabilities?.can_be_player !== false
+            canBePlayer: id === activeId || device.capabilities?.can_be_player !== false
         };
 
         const existing = byTitle.get(entry.title);
-        const preferred = !existing
-            || id === state.selectedDeviceId
-            || (!existing.canBePlayer && entry.canBePlayer);
-
-        if (preferred && existing?.id !== state.selectedDeviceId) byTitle.set(entry.title, entry);
+        if (!existing || (existing.id !== activeId && (entry.id === activeId || (!existing.canBePlayer && entry.canBePlayer)))) {
+            byTitle.set(entry.title, entry);
+        }
     }
 
     const ynison = [...byTitle.values()];
@@ -169,7 +168,7 @@ export function mapStateToSnapshot(ynisonState: YnisonState): PlayerSnapshot {
         shuffle: Boolean(queue?.shuffle_optional),
         repeat: repeatFromYnison(queue?.options?.repeat_mode),
         volume,
-        devices: remoteDevices(ynisonState.devices ?? []),
+        devices: remoteDevices(ynisonState.devices ?? [], activeDeviceId),
         activeDeviceId,
         activeDeviceName: String(device?.info?.title ?? device?.info?.app_name ?? "")
     };

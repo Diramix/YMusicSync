@@ -198,7 +198,8 @@ export const YMusicSyncStore = proxyLazyWebpack(() => {
 
         public setActiveDevice(deviceId: string): void {
             if (!deviceId || !this.snapshot) return;
-            this.optimistic({ activeDeviceId: deviceId });
+            const device = this.snapshot.devices.find(entry => entry.id === deviceId);
+            this.optimistic({ activeDeviceId: deviceId, activeDeviceName: device?.title ?? "" });
             void this.command("setActiveDevice", { deviceId });
         }
 
