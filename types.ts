@@ -18,6 +18,8 @@ export interface PlayerSnapshot {
     trackId: string;
     title: string;
     artists: string;
+    artistUrl: string;
+    artistsResolved: boolean;
     album: string;
     coverUrl: string;
     positionMs: number;
@@ -29,6 +31,15 @@ export interface PlayerSnapshot {
     devices: PlayerDevice[];
     activeDeviceId: string;
     activeDeviceName: string;
+}
+
+export interface StationEntry {
+    deviceId: string;
+    name: string;
+    platform: string;
+    host: string;
+    port: number;
+    token: string;
 }
 
 export interface YnisonStatus {

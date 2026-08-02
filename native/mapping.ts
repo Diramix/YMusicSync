@@ -10,16 +10,21 @@ import type { PlayerDevice, PlayerSnapshot, RepeatMode, YnisonDevice, YnisonStat
 import { MAX_ARTIST_CACHE_ENTRIES } from "./constants";
 import { emitSnapshot } from "./events";
 import { errorMessage, log, state } from "./state";
+import { STATION_PREFIX } from "./station/constants";
 
 interface TracksResponse {
-    result?: { artists?: { name?: unknown; }[]; }[];
+    result?: { artists?: { id?: unknown; name?: unknown; }[]; }[];
 }
 
-// Ynison carries no artist names, so they come from the public Yandex Music API.
-const artistCache = new Map<string, string>();
+interface TrackArtists {
+    names: string;
+    url: string;
+}
+
+const artistCache = new Map<string, TrackArtists>();
 const artistLookups = new Set<string>();
 
-async function fetchArtists(trackId: string): Promise<string> {
+async function fetchArtists(trackId: string): Promise<TrackArtists> {
     const response = await net.fetch(`https://api.music.yandex.net/tracks?trackIds=${encodeURIComponent(trackId)}`, {
         headers: {
             Authorization: `OAuth ${state.token}`,
@@ -30,10 +35,15 @@ async function fetchArtists(trackId: string): Promise<string> {
 
     const body = await response.json() as TracksResponse;
     const artists = body.result?.[0]?.artists ?? [];
-    return artists.map(artist => String(artist.name ?? "")).filter(Boolean).join(", ");
+    const firstId = String(artists[0]?.id ?? "");
+
+    return {
+        names: artists.map(artist => String(artist.name ?? "")).filter(Boolean).join(", "),
+        url: firstId ? `https://music.yandex.ru/artist/${firstId}` : ""
+    };
 }
 
-function rememberArtists(trackId: string, artists: string): void {
+function rememberArtists(trackId: string, artists: TrackArtists): void {
     artistCache.set(trackId, artists);
     while (artistCache.size > MAX_ARTIST_CACHE_ENTRIES) {
         artistCache.delete(artistCache.keys().next().value as string);
@@ -48,13 +58,24 @@ export function resolveArtists(trackId: string): void {
         .then(artists => {
             rememberArtists(trackId, artists);
             if (state.lastSnapshot?.trackId !== trackId) return;
-            emitSnapshot({ ...state.lastSnapshot, artists });
+            emitSnapshot({
+                ...state.lastSnapshot,
+                artists: artists.names,
+                artistUrl: artists.url,
+                artistsResolved: true
+            });
         })
-        .catch(error => log(`Artist lookup failed: ${errorMessage(error)}`))
+        .catch(error => {
+            rememberArtists(trackId, { names: "", url: "" });
+            log(`Artist lookup failed: ${errorMessage(error)}`);
+            if (state.lastSnapshot?.trackId === trackId) {
+                emitSnapshot({ ...state.lastSnapshot, artistsResolved: true });
+            }
+        })
         .finally(() => artistLookups.delete(trackId));
 }
 
-function absoluteCoverUrl(value: unknown): string {
+export function absoluteCoverUrl(value: unknown): string {
     const raw = typeof value === "string" ? value.trim() : "";
     if (!raw) return "";
     if (raw.startsWith("//")) return `https:${raw}`;
@@ -72,8 +93,6 @@ export function repeatFromYnison(value: unknown): RepeatMode {
     }
 }
 
-// Ynison leaves active_device_id_optional empty until a device intercepts
-// activity, so a plainly playing client is often not marked active.
 export function targetDevice(ynisonState: YnisonState): YnisonDevice | null {
     const devices = ynisonState.devices ?? [];
     const byId = (id: string) => (id ? devices.find(device => device.info?.device_id === id) ?? null : null);
@@ -91,16 +110,35 @@ export function deviceVolume(device: YnisonDevice | null): number {
 }
 
 function remoteDevices(devices: YnisonDevice[]): PlayerDevice[] {
-    return devices
-        .filter(device => {
-            const id = device.info?.device_id;
-            return Boolean(id) && id !== state.deviceId;
-        })
-        .map(device => ({
-            id: String(device.info?.device_id),
-            title: String(device.info?.title ?? device.info?.app_name ?? device.info?.device_id),
+    const byTitle = new Map<string, PlayerDevice>();
+
+    for (const device of devices) {
+        const id = String(device.info?.device_id ?? "");
+        if (!id || id === state.deviceId || device.is_shadow) continue;
+
+        const entry = {
+            id,
+            title: String(device.info?.title ?? device.info?.app_name ?? id),
             canBePlayer: device.capabilities?.can_be_player !== false
-        }));
+        };
+
+        const existing = byTitle.get(entry.title);
+        const preferred = !existing
+            || id === state.selectedDeviceId
+            || (!existing.canBePlayer && entry.canBePlayer);
+
+        if (preferred && existing?.id !== state.selectedDeviceId) byTitle.set(entry.title, entry);
+    }
+
+    const ynison = [...byTitle.values()];
+
+    const stations = state.stations.map(station => ({
+        id: `${STATION_PREFIX}${station.deviceId}`,
+        title: station.name || station.deviceId,
+        canBePlayer: true
+    }));
+
+    return [...ynison, ...stations];
 }
 
 export function mapStateToSnapshot(ynisonState: YnisonState): PlayerSnapshot {
@@ -117,7 +155,9 @@ export function mapStateToSnapshot(ynisonState: YnisonState): PlayerSnapshot {
     return {
         trackId,
         title: String(current?.title ?? ""),
-        artists: artistCache.get(trackId) ?? "",
+        artists: artistCache.get(trackId)?.names ?? "",
+        artistUrl: artistCache.get(trackId)?.url ?? "",
+        artistsResolved: !trackId || artistCache.has(trackId),
         album: String(current?.album_title_optional ?? ""),
         coverUrl: absoluteCoverUrl(current?.cover_url_optional),
         positionMs: Number(status?.progress_ms ?? 0),

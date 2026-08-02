@@ -5,12 +5,25 @@
  */
 
 import { definePluginSettings } from "@api/Settings";
+import { Divider, Heading } from "@components/index";
+import { Margins } from "@utils/margins";
 import { OptionType } from "@utils/types";
+
+import { updateActivity } from "./richPresence";
 
 function isValidToken(value: string): true | string {
     const token = value.trim();
     if (token.length > 0 && token.length < 20) return "Token looks too short";
     return true;
+}
+
+function RichPresenceSection() {
+    return (
+        <div className={Margins.top16}>
+            <Divider />
+            <Heading tag="h3" className={Margins.top16}>Discord RPC</Heading>
+        </div>
+    );
 }
 
 export const settings = definePluginSettings({
@@ -35,5 +48,29 @@ export const settings = definePluginSettings({
         displayName: "Show volume slider",
         description: "Show the volume slider under the playback controls",
         default: true
+    },
+    richPresenceSection: {
+        type: OptionType.COMPONENT,
+        component: RichPresenceSection
+    },
+    showActivity: {
+        type: OptionType.BOOLEAN,
+        displayName: "Show Discord activity",
+        description: "Share the current track as a listening activity",
+        default: true,
+        onChange: () => void updateActivity()
+    },
+    showTrackButton: {
+        type: OptionType.BOOLEAN,
+        displayName: "Show track button",
+        description: "Add an Open in Yandex Music button to the activity",
+        default: true,
+        onChange: () => void updateActivity()
+    },
+    activityName: {
+        type: OptionType.STRING,
+        displayName: "Activity name",
+        default: "Yandex Music",
+        onChange: () => void updateActivity()
     }
 });

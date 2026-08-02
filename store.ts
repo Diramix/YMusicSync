@@ -39,8 +39,6 @@ export const YMusicSyncStore = proxyLazyWebpack(() => {
         public lastError: string | null = null;
         public snapshot: PlayerSnapshot | null = null;
         public hiddenByPause = false;
-        // Ynison reports the last track even while it sits paused, so the panel stays
-        // out of the way until playback actually starts.
         public hasPlayed = false;
 
         private pauseTimer: number | null = null;
@@ -48,6 +46,7 @@ export const YMusicSyncStore = proxyLazyWebpack(() => {
         private active = false;
         private listenGeneration = 0;
         private appliedToken = "";
+        private appliedStationToken: string | null = null;
         private positionAnchorMs = 0;
         private positionAnchorAt = Date.now();
 
@@ -68,7 +67,10 @@ export const YMusicSyncStore = proxyLazyWebpack(() => {
             return Math.max(0, position);
         }
 
-        private readonly onTokenSettingChange = () => void this.applyToken();
+        private readonly onTokenSettingChange = () => {
+            void this.applyToken();
+            void this.applyStationToken();
+        };
 
         public async start(): Promise<void> {
             if (this.active) return;
@@ -85,6 +87,7 @@ export const YMusicSyncStore = proxyLazyWebpack(() => {
             }
 
             await this.applyToken();
+            void this.applyStationToken();
             void this.listen();
         }
 
@@ -104,6 +107,7 @@ export const YMusicSyncStore = proxyLazyWebpack(() => {
             }
 
             this.appliedToken = "";
+            this.appliedStationToken = null;
             this.connected = false;
             this.hasPlayed = false;
             this.snapshot = null;
@@ -174,7 +178,6 @@ export const YMusicSyncStore = proxyLazyWebpack(() => {
             void this.command("cycleRepeat");
         }
 
-        // The native side owns the pre-mute volume, so the panel waits for its snapshot.
         public toggleMute(): void {
             void this.command("toggleMute");
         }
@@ -219,6 +222,34 @@ export const YMusicSyncStore = proxyLazyWebpack(() => {
             this.emitChange();
         }
 
+        public async applyStationToken(): Promise<void> {
+            if (!Native || !this.active) return;
+
+            const token = String(settings.store.oauthToken ?? "").trim();
+            if (token === this.appliedStationToken) return;
+            this.appliedStationToken = token;
+
+            try {
+                await Native.connectStations(token);
+            } catch (error) {
+                this.lastError = errorMessage(error);
+                logger.error("Station lookup failed:", error);
+                this.emitChange();
+            }
+        }
+
+        public async rescanStations(): Promise<void> {
+            if (!Native) return;
+
+            try {
+                await Native.rescanStations();
+            } catch (error) {
+                this.lastError = errorMessage(error);
+                logger.error("Station rescan failed:", error);
+                this.emitChange();
+            }
+        }
+
         private async listen(): Promise<void> {
             if (!Native) return;
             const generation = ++this.listenGeneration;
@@ -234,8 +265,6 @@ export const YMusicSyncStore = proxyLazyWebpack(() => {
                     continue;
                 }
 
-                // Events already in hand are applied even when a newer loop took over,
-                // so a restart mid-wait cannot drop an update.
                 for (const event of events) this.handleEvent(event);
                 if (!this.active || generation !== this.listenGeneration) return;
             }
@@ -267,10 +296,8 @@ export const YMusicSyncStore = proxyLazyWebpack(() => {
         }
 
         private applySnapshot(raw: PlayerSnapshot): void {
-            // Ynison keeps volume as 0..1; the player UI works in percent.
             const snapshot = { ...raw, volume: lodash.clamp(Math.round(raw.volume * 100), 0, 100) };
 
-            // Ynison omits the title while a queue update lands.
             if (!snapshot.title) snapshot.title = this.snapshot?.title ?? FALLBACK_TITLE;
 
             if (snapshot.trackId !== this.snapshot?.trackId) this.pausedSince = null;

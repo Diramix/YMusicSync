@@ -16,6 +16,10 @@ export interface SocketHandlers {
     onClose(reason: string): void;
 }
 
+export interface SocketOptions {
+    rejectUnauthorized?: boolean;
+}
+
 export class YnisonSocket {
     private socket: TLSSocket | null = null;
     private buffer: Buffer<ArrayBufferLike> = Buffer.alloc(0);
@@ -31,7 +35,7 @@ export class YnisonSocket {
         socket.on("close", () => this.destroy("Socket closed"));
     }
 
-    static connect(url: URL, protocols: string[], handlers: SocketHandlers): Promise<YnisonSocket> {
+    static connect(url: URL, protocols: string[], handlers: SocketHandlers, options: SocketOptions = {}): Promise<YnisonSocket> {
         return new Promise((resolve, reject) => {
             const key = randomBytes(16).toString("base64");
             const expectedAccept = createHash("sha1").update(key + WEBSOCKET_GUID).digest("base64");
@@ -39,8 +43,9 @@ export class YnisonSocket {
             const socket = tlsConnect({
                 host: url.hostname,
                 port: url.port ? Number(url.port) : 443,
-                servername: url.hostname,
-                ALPNProtocols: ["http/1.1"]
+                servername: /^[\d.]+$/.test(url.hostname) ? undefined : url.hostname,
+                ALPNProtocols: ["http/1.1"],
+                rejectUnauthorized: options.rejectUnauthorized !== false
             });
 
             let settled = false;
@@ -117,7 +122,7 @@ export class YnisonSocket {
                     "Connection: Upgrade",
                     `Sec-WebSocket-Key: ${key}`,
                     "Sec-WebSocket-Version: 13",
-                    `Sec-WebSocket-Protocol: ${protocols.join(", ")}`,
+                    ...(protocols.length > 0 ? [`Sec-WebSocket-Protocol: ${protocols.join(", ")}`] : []),
                     "Origin: https://music.yandex.ru",
                     "",
                     ""
@@ -214,7 +219,6 @@ export class YnisonSocket {
                 offset += 8;
             }
 
-            // A server must never mask; a masked frame means the stream is out of sync.
             if (masked) {
                 this.destroy("Server sent a masked frame");
                 return;
@@ -262,7 +266,6 @@ export class YnisonSocket {
                 this.emitText(payload);
                 return true;
             default:
-                // Binary and reserved opcodes are not part of the Ynison protocol.
                 this.destroy(`Unsupported opcode ${opcode}`);
                 return false;
         }

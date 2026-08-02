@@ -29,7 +29,6 @@ export function getDeviceId(): string {
             return state.deviceId;
         }
     } catch {
-        // No identity yet, fall through and create one.
     }
 
     state.deviceId = randomUUID();

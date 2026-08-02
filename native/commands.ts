@@ -11,6 +11,8 @@ import { newVersion } from "./device";
 import { emitSnapshot } from "./events";
 import { deviceVolume, mapStateToSnapshot, repeatFromYnison, targetDevice } from "./mapping";
 import { state } from "./state";
+import { isStationSelected, releaseStation, runStationCommand, selectStation } from "./station";
+import { STATION_PREFIX } from "./station/constants";
 
 function pushPlayingStatus(): void {
     if (!state.socket?.isOpen || !state.lastState) return;
@@ -61,6 +63,18 @@ function moveQueue(delta: number): void {
 }
 
 export function runCommand(name: PlayerCommand, payload: CommandPayload): boolean {
+    if (name === "setActiveDevice") {
+        const deviceId = String(payload.deviceId ?? "");
+        if (!deviceId) return false;
+
+        if (deviceId.startsWith(STATION_PREFIX)) {
+            return selectStation(deviceId.slice(STATION_PREFIX.length));
+        }
+        releaseStation();
+    } else if (isStationSelected()) {
+        return runStationCommand(name, payload);
+    }
+
     if (!state.socket?.isOpen || !state.lastState) return false;
 
     const { status, player_queue: queue } = state.lastState.player_state;
@@ -109,8 +123,6 @@ export function runCommand(name: PlayerCommand, payload: CommandPayload): boolea
         case "setActiveDevice": {
             const deviceId = String(payload.deviceId ?? "");
             if (!deviceId) return false;
-            // The hub rejects update_active_device for a device not currently holding
-            // activity, so the pick is remembered locally and aimed at from here on.
             state.selectedDeviceId = deviceId;
             state.socket.send(wrapRequest({ update_active_device: { device_id_optional: deviceId } }));
             break;

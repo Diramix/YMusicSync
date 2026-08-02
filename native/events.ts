@@ -9,7 +9,6 @@ import { MAX_EVENTS } from "./constants";
 import { state } from "./state";
 
 const eventQueue: YnisonEvent[] = [];
-// The renderer keeps exactly one long-poll invoke open, so a single waiter slot is enough.
 let eventWaiter: ((events: YnisonEvent[]) => void) | null = null;
 
 export function enqueue(event: YnisonEvent): void {
@@ -43,7 +42,6 @@ export function emitStatus(connectionState: YnisonStatus["state"], error: string
 export function awaitEvents(timeoutMs: number): Promise<YnisonEvent[]> {
     if (eventQueue.length > 0) return Promise.resolve(eventQueue.splice(0, MAX_EVENTS));
 
-    // A second concurrent poll supersedes the previous one instead of stacking.
     eventWaiter?.([]);
 
     return new Promise(resolve => {

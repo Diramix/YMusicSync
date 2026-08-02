@@ -12,6 +12,7 @@ import { closeConnection, openConnection } from "./connection";
 import { resolveCoverDataUrl } from "./covers";
 import { awaitEvents, emitStatus, statusSnapshot } from "./events";
 import { queueConnectionOperation, state } from "./state";
+import { refreshStations, startStations, stopStations } from "./station";
 
 function clampInt(value: number, min: number, max: number, fallback: number): number {
     if (!Number.isFinite(value)) return fallback;
@@ -40,6 +41,7 @@ export function connect(_: IpcMainInvokeEvent, rawToken: string): Promise<Ynison
 
 export function disconnect(_: IpcMainInvokeEvent): YnisonStatus {
     closeConnection("Disconnected by user");
+    stopStations();
     state.token = "";
     emitStatus("idle", null);
     return statusSnapshot();
@@ -55,6 +57,14 @@ export function command(_: IpcMainInvokeEvent, name: PlayerCommand, payload: Com
         value: Number.isFinite(value) ? value : undefined,
         deviceId: typeof payload.deviceId === "string" ? payload.deviceId.slice(0, 256) : undefined
     });
+}
+
+export function connectStations(_: IpcMainInvokeEvent, rawToken: string): Promise<void> {
+    return startStations(String(rawToken ?? "").trim().slice(0, 512));
+}
+
+export function rescanStations(_: IpcMainInvokeEvent): Promise<void> {
+    return refreshStations();
 }
 
 export function getCoverDataUrl(_: IpcMainInvokeEvent, rawUrl: string): Promise<string> {

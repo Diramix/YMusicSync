@@ -10,6 +10,7 @@ import definePlugin, { ReporterTestable } from "@utils/types";
 import { findCssClassesLazy } from "@webpack";
 
 import { YMusicSyncPlayer } from "./components/Player";
+import { startRichPresence, stopRichPresence } from "./richPresence";
 import { settings } from "./settings";
 import { YMusicSyncStore } from "./store";
 import style from "./styles.css?managed";
@@ -18,7 +19,7 @@ const SliderClasses = findCssClassesLazy("slider", "bar", "barFill", "grabber");
 
 export default definePlugin({
     name: "YMusicSync",
-    description: "Control Yandex Music through Ynison",
+    description: "Control Yandex Music through Ynison and Discord RPC",
     authors: [{ name: "diram1x", id: 0n }],
     tags: ["Media", "Utility"],
     searchTerms: ["Yandex Music", "Ynison", "YMusicSync", "Music Controls"],
@@ -29,8 +30,6 @@ export default definePlugin({
         {
             find: "#{intl::USER_PROFILE_ACCOUNT_POPOUT_BUTTON_A11Y_LABEL}",
             replacement: {
-                // The callee is a member expression when another plugin (MusicControls)
-                // already wrapped the account panel.
                 match: /(?<=\i\.jsxs?\)\()((?:\i\.)*\i(?:\["[^"]+"\])?(?:\.\i)*),{(?=[^})]*?userTag:\i,occluded:)/,
                 replace: "$self.PanelWrapper,{YMusicSync:$1,"
             }
@@ -52,15 +51,18 @@ export default definePlugin({
         setStyleClassNames(style, { ...SliderClasses }, false);
         enableStyle(style);
         void YMusicSyncStore.start();
+        startRichPresence();
     },
 
     stop() {
         disableStyle(style);
+        stopRichPresence();
         void YMusicSyncStore.stop();
     },
 
     toolboxActions: {
         "Reconnect to Ynison": () => void YMusicSyncStore.restart(),
+        "Rescan for Yandex Station": () => void YMusicSyncStore.rescanStations(),
         "Log YMusicSync diagnostics": () => void YMusicSyncStore.logDiagnostics()
     }
 });

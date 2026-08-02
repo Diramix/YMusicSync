@@ -26,8 +26,6 @@ interface DownloadedCover {
 
 const cache = new Map<string, string>();
 
-// Yandex's raw coverUri ends in a size placeholder (%% or {size}) that returns
-// no usable image until it is resolved.
 function withCoverSize(url: URL): URL {
     const href = url.href.replace(
         /(?:%25%25|%%|%257Bsize%257D|%7Bsize%7D|\{size\}|%25s|%s)/gi,
@@ -63,7 +61,6 @@ async function downloadCover(url: URL, redirectCount = 0): Promise<DownloadedCov
     timeout.unref();
 
     try {
-        // net.fetch follows the Electron proxy and certificate settings Node's fetch ignores.
         const response = await net.fetch(url.href, {
             redirect: "manual",
             signal: controller.signal,

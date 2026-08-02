@@ -22,6 +22,7 @@ import { deviceInfo, newVersion } from "./device";
 import { emitSnapshot, emitStatus, enqueue } from "./events";
 import { mapStateToSnapshot, resolveArtists } from "./mapping";
 import { errorMessage, log, queueConnectionOperation, state } from "./state";
+import { isStationSelected } from "./station";
 import { YnisonSocket } from "./ynisonSocket";
 
 interface RedirectorResponse {
@@ -144,8 +145,6 @@ function sendFullState(client: YnisonSocket): void {
             player_state: state.lastState?.player_state ?? emptyPlayerState(),
             device: {
                 volume: 0,
-                // Ynison drops writes from a device that cannot play itself, but we
-                // never mark ourselves active, so playback stays where the user put it.
                 capabilities: {
                     can_be_player: true,
                     can_be_remote_controller: true,
@@ -161,8 +160,6 @@ function sendFullState(client: YnisonSocket): void {
     }));
 }
 
-// Ynison rarely marks a device active on its own, so the first playable one is
-// adopted automatically and remembered until it disappears.
 function autoSelectDevice(incoming: YnisonState): void {
     const devices = incoming.devices ?? [];
     const playable = (device: YnisonDevice) =>
@@ -210,7 +207,6 @@ function handleIncoming(data: string): void {
             const message = typeof parsed.error === "string" ? parsed.error : parsed.error.message;
             enqueue({ type: "error", message: String(message ?? parsed.error), at: Date.now() });
         } else {
-            // Rejected writes come back as a plain ack instead of a state.
             enqueue({ type: "log", message: `Non-state message: ${data.slice(0, 500)}`, at: Date.now() });
         }
         return;
@@ -218,6 +214,9 @@ function handleIncoming(data: string): void {
 
     state.lastState = incoming;
     autoSelectDevice(incoming);
+
+    if (isStationSelected()) return;
+
     const snapshot = mapStateToSnapshot(incoming);
     resolveArtists(snapshot.trackId);
     emitSnapshot(snapshot);

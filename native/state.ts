@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import type { PlayerSnapshot, YnisonState, YnisonStatus } from "../types";
+import type { PlayerSnapshot, StationEntry, YnisonState, YnisonStatus } from "../types";
 import type { YnisonSocket } from "./ynisonSocket";
 
 export const state = {
@@ -19,7 +19,10 @@ export const state = {
     deviceId: "",
     reconnectTimer: null as NodeJS.Timeout | null,
     reconnectAttempts: 0,
-    connectionGeneration: 0
+    connectionGeneration: 0,
+    stationToken: "",
+    stations: [] as StationEntry[],
+    activeStationId: ""
 };
 
 export function errorMessage(error: unknown): string {
@@ -32,7 +35,6 @@ export function log(message: string): void {
 
 let connectionOperation: Promise<unknown> = Promise.resolve();
 
-// Serialised so a late teardown cannot kill a newer connection.
 export function queueConnectionOperation<T>(operation: () => Promise<T>): Promise<T> {
     const result = connectionOperation.then(operation, operation);
     connectionOperation = result.then(() => undefined, () => undefined);

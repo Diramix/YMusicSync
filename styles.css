@@ -30,10 +30,6 @@
     transition: filter 0.2s;
 }
 
-.vc-ymsync-cover:hover {
-    filter: brightness(1.2);
-}
-
 .vc-ymsync-meta {
     flex: 1 1 auto;
     min-width: 0;
