@@ -24,7 +24,10 @@ function openSettings(): void {
     if (plugin) openPluginModal(plugin);
 }
 
-function DeviceMenu({ devices, activeId }: { devices: PlayerDevice[]; activeId: string; }) {
+function DeviceMenu() {
+    const devices = useStateFromStores<PlayerDevice[]>([YMusicSyncStore], () => YMusicSyncStore.snapshot?.devices ?? []);
+    const activeId = useStateFromStores([YMusicSyncStore], () => YMusicSyncStore.snapshot?.activeDeviceId ?? "");
+
     return (
         <Menu.Menu navId="vc-ymsync-devices" onClose={ContextMenuApi.closeContextMenu} aria-label={TEXT.devices}>
             <Menu.MenuGroup label={TEXT.devices}>
@@ -75,9 +78,7 @@ export function YMusicSyncPlayer() {
                 </div>
                 <PanelButton
                     label={`${snapshot.activeDeviceName || TEXT.unknownDevice}`}
-                    onClick={event => ContextMenuApi.openContextMenu(event, () => (
-                        <DeviceMenu devices={snapshot.devices} activeId={snapshot.activeDeviceId} />
-                    ))}
+                    onClick={event => ContextMenuApi.openContextMenu(event, () => <DeviceMenu />)}
                 >
                     <ScreenshareIcon className={cl("icon")} />
                 </PanelButton>

@@ -124,6 +124,7 @@ export function runCommand(name: PlayerCommand, payload: CommandPayload): boolea
             const deviceId = String(payload.deviceId ?? "");
             if (!deviceId) return false;
             state.selectedDeviceId = deviceId;
+            state.selectedDeviceAt = Date.now();
             state.socket.send(wrapRequest({ update_active_device: { device_id_optional: deviceId } }));
             break;
         }

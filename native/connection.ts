@@ -169,6 +169,10 @@ function autoSelectDevice(incoming: YnisonState): void {
 
     if (state.selectedDeviceId && !devices.some(device => device.info?.device_id === state.selectedDeviceId)) {
         state.selectedDeviceId = "";
+        state.selectedDeviceAt = 0;
+    }
+    if (state.selectedDeviceId && incoming.active_device_id_optional === state.selectedDeviceId) {
+        state.selectedDeviceAt = 0;
     }
     if (state.selectedDeviceId || incoming.active_device_id_optional) return;
 
@@ -293,4 +297,5 @@ export function closeConnection(reason: string): void {
     state.lastState = null;
     state.lastSnapshot = null;
     state.selectedDeviceId = "";
+    state.selectedDeviceAt = 0;
 }
