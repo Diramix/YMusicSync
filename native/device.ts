@@ -40,6 +40,10 @@ export function getDeviceId(): string {
     return state.deviceId;
 }
 
+export function isSelfDevice(deviceId: unknown): boolean {
+    return typeof deviceId === "string" && deviceId.length > 0 && deviceId === getDeviceId();
+}
+
 export function deviceInfo() {
     return {
         app_name: CLIENT_NAME,

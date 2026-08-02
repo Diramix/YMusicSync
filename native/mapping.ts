@@ -8,6 +8,7 @@ import { net } from "electron";
 
 import type { PlayerDevice, PlayerSnapshot, RepeatMode, YnisonDevice, YnisonState } from "../types";
 import { MAX_ARTIST_CACHE_ENTRIES } from "./constants";
+import { isSelfDevice } from "./device";
 import { emitSnapshot } from "./events";
 import { errorMessage, log, state } from "./state";
 import { STATION_PREFIX } from "./station/constants";
@@ -95,11 +96,13 @@ export function repeatFromYnison(value: unknown): RepeatMode {
 
 export function targetDevice(ynisonState: YnisonState): YnisonDevice | null {
     const devices = ynisonState.devices ?? [];
-    const byId = (id: string) => (id ? devices.find(device => device.info?.device_id === id) ?? null : null);
+    const byId = (id: string) => (id && !isSelfDevice(id)
+        ? devices.find(device => device.info?.device_id === id) ?? null
+        : null);
     return byId(ynisonState.active_device_id_optional ?? "")
         ?? byId(state.selectedDeviceId)
         ?? devices.find(device =>
-            device.info?.device_id !== state.deviceId
+            !isSelfDevice(device.info?.device_id)
             && device.capabilities?.can_be_player !== false) ?? null;
 }
 
@@ -114,7 +117,7 @@ function remoteDevices(devices: YnisonDevice[]): PlayerDevice[] {
 
     for (const device of devices) {
         const id = String(device.info?.device_id ?? "");
-        if (!id || id === state.deviceId || device.is_shadow) continue;
+        if (!id || isSelfDevice(id) || device.is_shadow) continue;
 
         const entry = {
             id,

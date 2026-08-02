@@ -18,7 +18,7 @@ import {
     REDIRECTOR_TIMEOUT_MS,
     REDIRECTOR_URL
 } from "./constants";
-import { deviceInfo, newVersion } from "./device";
+import { deviceInfo, isSelfDevice, newVersion } from "./device";
 import { emitSnapshot, emitStatus, enqueue } from "./events";
 import { mapStateToSnapshot, resolveArtists } from "./mapping";
 import { errorMessage, log, queueConnectionOperation, state } from "./state";
@@ -146,7 +146,9 @@ function sendFullState(client: YnisonSocket): void {
             device: {
                 volume: 0,
                 capabilities: {
-                    can_be_player: true,
+                    // Never advertise ourselves as playable, otherwise Ynison can hand
+                    // playback back to this plugin and it ends up controlling itself.
+                    can_be_player: false,
                     can_be_remote_controller: true,
                     volume_granularity: 16
                 },
@@ -164,9 +166,13 @@ function autoSelectDevice(incoming: YnisonState): void {
     const devices = incoming.devices ?? [];
     const playable = (device: YnisonDevice) =>
         device.info?.device_id
-        && device.info.device_id !== state.deviceId
+        && !isSelfDevice(device.info.device_id)
         && device.capabilities?.can_be_player !== false;
 
+    if (isSelfDevice(state.selectedDeviceId)) {
+        state.selectedDeviceId = "";
+        state.selectedDeviceAt = 0;
+    }
     if (state.selectedDeviceId && !devices.some(device => device.info?.device_id === state.selectedDeviceId)) {
         state.selectedDeviceId = "";
         state.selectedDeviceAt = 0;
@@ -174,7 +180,7 @@ function autoSelectDevice(incoming: YnisonState): void {
     if (state.selectedDeviceId && incoming.active_device_id_optional === state.selectedDeviceId) {
         state.selectedDeviceAt = 0;
     }
-    if (state.selectedDeviceId || incoming.active_device_id_optional) return;
+    if (state.selectedDeviceId || (incoming.active_device_id_optional && !isSelfDevice(incoming.active_device_id_optional))) return;
 
     const target = devices.find(playable);
     if (!target?.info?.device_id) return;

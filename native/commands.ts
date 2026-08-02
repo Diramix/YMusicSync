@@ -7,7 +7,7 @@
 import type { CommandPayload, PlayerCommand } from "../types";
 import { wrapRequest } from "./connection";
 import { REPEAT_CYCLE, REPEAT_TO_YNISON } from "./constants";
-import { newVersion } from "./device";
+import { isSelfDevice, newVersion } from "./device";
 import { emitSnapshot } from "./events";
 import { deviceVolume, mapStateToSnapshot, repeatFromYnison, targetDevice } from "./mapping";
 import { state } from "./state";
@@ -38,7 +38,7 @@ function pushVolume(volume: number): void {
 
     const device = targetDevice(state.lastState);
     const deviceId = device?.info?.device_id ?? state.lastState.active_device_id_optional;
-    if (!deviceId) return;
+    if (!deviceId || isSelfDevice(deviceId)) return;
 
     const volumeInfo = { volume: Math.min(1, Math.max(0, volume)), version: newVersion() };
     if (device) device.volume_info = volumeInfo;
@@ -65,7 +65,7 @@ function moveQueue(delta: number): void {
 export function runCommand(name: PlayerCommand, payload: CommandPayload): boolean {
     if (name === "setActiveDevice") {
         const deviceId = String(payload.deviceId ?? "");
-        if (!deviceId) return false;
+        if (!deviceId || isSelfDevice(deviceId)) return false;
 
         if (deviceId.startsWith(STATION_PREFIX)) {
             return selectStation(deviceId.slice(STATION_PREFIX.length));
@@ -122,7 +122,7 @@ export function runCommand(name: PlayerCommand, payload: CommandPayload): boolea
         }
         case "setActiveDevice": {
             const deviceId = String(payload.deviceId ?? "");
-            if (!deviceId) return false;
+            if (!deviceId || isSelfDevice(deviceId)) return false;
             state.selectedDeviceId = deviceId;
             state.selectedDeviceAt = Date.now();
             state.socket.send(wrapRequest({ update_active_device: { device_id_optional: deviceId } }));
