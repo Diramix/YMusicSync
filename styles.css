@@ -1,1085 +1,193 @@
-#vc-pulsesync-mount {
+.vc-ymsync-root {
     box-sizing: border-box;
     width: 100%;
     min-width: 0;
     margin: 0;
-    padding: 0;
-    overflow: hidden;
-}
-
-html[data-vc-pulsesync-client-theme="true"] {
-    --vc-pulsesync-client-surface-0: color-mix(in srgb, var(--vc-pulsesync-client-color) 30%, #050609);
-    --vc-pulsesync-client-surface-1: color-mix(in srgb, var(--vc-pulsesync-client-color) 38%, #08090d);
-    --vc-pulsesync-client-surface-2: color-mix(in srgb, var(--vc-pulsesync-client-color) 46%, #0b0c11);
-    --vc-pulsesync-client-surface-3: color-mix(in srgb, var(--vc-pulsesync-client-color) 54%, #0e1016);
-    --vc-pulsesync-client-surface-4: color-mix(in srgb, var(--vc-pulsesync-client-color) 62%, #11141b);
-    --vc-pulsesync-client-surface-5: color-mix(in srgb, var(--vc-pulsesync-client-color) 70%, #151821);
-    --vc-pulsesync-client-accent: color-mix(in srgb, var(--vc-pulsesync-client-color) 72%, #fff);
-    --vc-pulsesync-client-accent-hover: color-mix(in srgb, var(--vc-pulsesync-client-color) 62%, #fff);
-}
-
-html[data-vc-pulsesync-client-theme="true"],
-html[data-vc-pulsesync-client-theme="true"] .theme-dark,
-html[data-vc-pulsesync-client-theme="true"] .theme-light {
-    --background-base-lowest: var(--vc-pulsesync-client-surface-0) !important;
-    --background-base-lower: var(--vc-pulsesync-client-surface-1) !important;
-    --background-base-lower-alt: var(--vc-pulsesync-client-surface-1) !important;
-    --background-base-low: var(--vc-pulsesync-client-surface-2) !important;
-    --background-surface-low: var(--vc-pulsesync-client-surface-2) !important;
-    --background-surface-high: var(--vc-pulsesync-client-surface-3) !important;
-    --background-surface-higher: var(--vc-pulsesync-client-surface-4) !important;
-    --background-surface-highest: var(--vc-pulsesync-client-surface-5) !important;
-    --background-primary: var(--vc-pulsesync-client-surface-3) !important;
-    --background-secondary: var(--vc-pulsesync-client-surface-2) !important;
-    --background-secondary-alt: var(--vc-pulsesync-client-surface-1) !important;
-    --background-tertiary: var(--vc-pulsesync-client-surface-0) !important;
-    --background-floating: var(--vc-pulsesync-client-surface-5) !important;
-    --background-nested-floating: var(--vc-pulsesync-client-surface-4) !important;
-    --modal-background: var(--vc-pulsesync-client-surface-3) !important;
-    --modal-footer-background: var(--vc-pulsesync-client-surface-2) !important;
-    --channeltextarea-background: var(--vc-pulsesync-client-surface-4) !important;
-    --input-background: var(--vc-pulsesync-client-surface-4) !important;
-    --input-background-default: var(--vc-pulsesync-client-surface-4) !important;
-    --card-primary-bg: var(--vc-pulsesync-client-surface-3) !important;
-    --card-secondary-bg: var(--vc-pulsesync-client-surface-2) !important;
-    --card-background-default: var(--vc-pulsesync-client-surface-3) !important;
-    --background-modifier-hover: color-mix(in srgb, var(--vc-pulsesync-client-color) 20%, transparent) !important;
-    --background-modifier-active: color-mix(in srgb, var(--vc-pulsesync-client-color) 28%, transparent) !important;
-    --background-modifier-selected: color-mix(in srgb, var(--vc-pulsesync-client-color) 34%, transparent) !important;
-    --background-modifier-accent: color-mix(in srgb, var(--vc-pulsesync-client-color) 42%, transparent) !important;
-    --background-mod-subtle: color-mix(in srgb, var(--vc-pulsesync-client-color) 16%, transparent) !important;
-    --background-mod-normal: color-mix(in srgb, var(--vc-pulsesync-client-color) 24%, transparent) !important;
-    --background-mod-strong: color-mix(in srgb, var(--vc-pulsesync-client-color) 34%, transparent) !important;
-    --brand-500: var(--vc-pulsesync-client-accent) !important;
-    --brand-560: var(--vc-pulsesync-client-accent-hover) !important;
-    --brand-experiment: var(--vc-pulsesync-client-accent) !important;
-    --background-brand: var(--vc-pulsesync-client-accent) !important;
-    --focus-primary: var(--vc-pulsesync-client-accent) !important;
-    --header-primary: #f4f5f8 !important;
-    --header-secondary: #c7cad2 !important;
-    --text-default: #e8eaf0 !important;
-    --text-normal: #e8eaf0 !important;
-    --text-muted: #aeb3bf !important;
-    --text-primary: #f4f5f8 !important;
-    --interactive-normal: #c7cad2 !important;
-    --interactive-hover: #eceef3 !important;
-    --interactive-active: #fff !important;
-    --interactive-muted: #747b89 !important;
-    --channels-default: #b7bbc5 !important;
-
-    color-scheme: dark;
-}
-
-html[data-vc-pulsesync-client-theme="true"] body {
-    background: var(--vc-pulsesync-client-surface-0);
-}
-
-html[data-vc-pulsesync-client-theme="true"] [class*="channelTextArea_"],
-html[data-vc-pulsesync-client-theme="true"] [class*="scrollableContainer_"],
-html[data-vc-pulsesync-client-theme="true"] [class*="channelTextArea_"] [class*="inner_"] {
-    background: var(--vc-pulsesync-client-surface-4) !important;
-}
-
-.vc-pulsesync-player {
-    font-family: "JetBrainsMono Nerd Font", "JetBrainsMono Nerd Font Mono", "JetBrains Mono", monospace;
-    --vc-pulsesync-foreground-rgb: 255, 255, 255;
-    --vc-pulsesync-accent: rgb(var(--vc-pulsesync-foreground-rgb));
-    --vc-pulsesync-accent-soft: rgba(var(--vc-pulsesync-foreground-rgb), 0.16);
-    --vc-pulsesync-background: #292c3e;
-    --vc-pulsesync-theme-accent: #292c3e;
-    --vc-pulsesync-surface-border: rgba(var(--vc-pulsesync-foreground-rgb), 0.08);
-    --vc-pulsesync-text: rgb(var(--vc-pulsesync-foreground-rgb));
-    --vc-pulsesync-text-muted: rgba(var(--vc-pulsesync-foreground-rgb), 0.76);
-    --vc-pulsesync-text-faint: rgba(var(--vc-pulsesync-foreground-rgb), 0.60);
-    --vc-pulsesync-cover-background: rgba(var(--vc-pulsesync-foreground-rgb), 0.08);
-    --vc-pulsesync-button-color: rgba(var(--vc-pulsesync-foreground-rgb), 0.88);
-    --vc-pulsesync-button-bg: rgba(var(--vc-pulsesync-foreground-rgb), 0.07);
-    --vc-pulsesync-button-bg-hover: rgba(var(--vc-pulsesync-foreground-rgb), 0.12);
-    --vc-pulsesync-button-active-bg: rgba(var(--vc-pulsesync-foreground-rgb), 0.16);
-    --vc-pulsesync-button-border: rgba(var(--vc-pulsesync-foreground-rgb), 0.06);
-    --vc-pulsesync-focus-ring: rgba(var(--vc-pulsesync-foreground-rgb), 0.40);
-    --vc-pulsesync-slider-filled: rgba(var(--vc-pulsesync-foreground-rgb), 0.96);
-    --vc-pulsesync-slider-rest: rgba(var(--vc-pulsesync-foreground-rgb), 0.18);
-    --vc-pulsesync-status-ring: rgba(var(--vc-pulsesync-foreground-rgb), 0.06);
-    --vc-pulsesync-like-color: rgba(var(--vc-pulsesync-foreground-rgb), 0.84);
-    --vc-pulsesync-volume-icon-color: rgba(var(--vc-pulsesync-foreground-rgb), 0.78);
-    --vc-pulsesync-play-background: rgb(var(--vc-pulsesync-foreground-rgb));
-    --vc-pulsesync-play-foreground: #111318;
-    box-sizing: border-box;
-    width: 100%;
     padding: 10px;
-    color: var(--vc-pulsesync-text);
-    background: var(--vc-pulsesync-background, #292c3e);
-    border-radius: 0;
-    overflow: hidden;
-    backdrop-filter: blur(12px);
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--vc-pulsesync-surface-border);
+    background: var(--background-base-low);
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border-bottom: 1px solid var(--border-subtle);
 }
 
-.vc-pulsesync-player.vc-pulsesync-light-theme {
-    --vc-pulsesync-foreground-rgb: 0, 0, 0;
-    --vc-pulsesync-play-foreground: #ffffff;
-}
-
-.vc-pulsesync-info-row {
+.vc-ymsync-head {
     display: flex;
+    flex-direction: row;
     align-items: center;
+    height: 3em;
+    gap: 0.5em;
     min-width: 0;
-    gap: 10px;
 }
 
-.vc-pulsesync-cover {
-    flex: 0 0 48px;
-    width: 48px;
-    height: 48px;
-    border-radius: 10px;
-    object-fit: cover;
-    background: var(--vc-pulsesync-cover-background);
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+.vc-ymsync-cover {
+    flex: 0 0 auto;
+    height: 90%;
+    width: auto;
+    aspect-ratio: 1;
+    object-fit: contain;
+    border-radius: 3px;
+    background: var(--background-base-lower);
+    transition: filter 0.2s;
 }
 
-.vc-pulsesync-cover-placeholder {
-    display: grid;
-    place-items: center;
-    font-size: 24px;
-    color: var(--vc-pulsesync-text-muted);
+.vc-ymsync-cover:hover {
+    filter: brightness(1.2);
 }
 
-.vc-pulsesync-track-copy {
+.vc-ymsync-meta {
     flex: 1 1 auto;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
-}
-
-.vc-pulsesync-title-line {
-    display: flex;
-    align-items: center;
-    min-width: 0;
-    gap: 6px;
-}
-
-.vc-pulsesync-title,
-.vc-pulsesync-subtitle {
+    padding: 0.2rem;
+    align-items: flex-start;
+    place-content: flex-start center;
     overflow: hidden;
+}
+
+.vc-ymsync-line {
     white-space: nowrap;
+    overflow: hidden;
+    width: 100%;
     text-overflow: ellipsis;
 }
 
-.vc-pulsesync-title {
-    min-width: 0;
-    color: var(--vc-pulsesync-text);
+.vc-ymsync-meta > .vc-ymsync-line:first-child {
+    color: var(--text-strong);
     font-size: 14px;
-    line-height: 18px;
-    font-weight: 700;
-    letter-spacing: 0.01em;
+    font-weight: 600;
 }
 
-.vc-pulsesync-title-link,
-.vc-pulsesync-artist-link {
-    text-decoration: none;
-    transition: color .14s ease, text-decoration-color .14s ease, opacity .14s ease;
-}
-
-.vc-pulsesync-title-link:hover,
-.vc-pulsesync-title-link:focus-visible,
-.vc-pulsesync-artist-link:hover,
-.vc-pulsesync-artist-link:focus-visible {
-    text-decoration: underline;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 2px;
-}
-
-.vc-pulsesync-subtitle {
-    color: var(--vc-pulsesync-text-muted);
+.vc-ymsync-meta > .vc-ymsync-line + .vc-ymsync-line {
     font-size: 12px;
-    line-height: 16px;
+    color: var(--text-strong);
 }
 
-.vc-pulsesync-artists,
-.vc-pulsesync-artist-link,
-.vc-pulsesync-album,
-.vc-pulsesync-separator {
-    color: var(--vc-pulsesync-text-muted);
-}
-
-.vc-pulsesync-artist-link:hover,
-.vc-pulsesync-artist-link:focus-visible {
-    color: var(--vc-pulsesync-text);
-}
-
-.vc-pulsesync-status-dot {
-    display: inline-block;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #ff5f57;
-    box-shadow: 0 0 0 4px var(--vc-pulsesync-status-ring);
-}
-
-.vc-pulsesync-status-waiting { background: #f5c542; }
-.vc-pulsesync-status-error { background: #ff5f57; }
-
-.vc-pulsesync-progress-row,
-.vc-pulsesync-volume-row {
-    display: grid;
-    grid-template-columns: 36px minmax(0, 1fr) 36px;
-    align-items: center;
-    gap: 8px;
-    margin-top: 8px;
-    color: var(--vc-pulsesync-text-faint);
-    font-size: 10px;
-    line-height: 12px;
-    font-variant-numeric: tabular-nums;
-}
-
-.vc-pulsesync-progress-row > span:last-child,
-.vc-pulsesync-volume-row > span:last-child {
-    text-align: right;
-}
-
-.vc-pulsesync-range-shell {
-    --vc-pulsesync-progress: 0%;
-    position: relative;
-    width: 100%;
-    min-width: 0;
-    height: 16px;
-    align-self: center;
-}
-
-.vc-pulsesync-range {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    display: block;
-    width: 100%;
-    min-width: 0;
-    height: 16px;
-    margin: 0;
-    padding: 0;
-    cursor: pointer;
-    outline: none;
-    border: 0;
-    appearance: none;
-    -webkit-appearance: none;
-    background: transparent;
-    touch-action: none;
-}
-
-.vc-pulsesync-range::-webkit-slider-runnable-track {
-    height: 3px;
-    border: 0;
-    border-radius: 999px;
-    background-color: var(--vc-pulsesync-slider-rest);
-    background-image: linear-gradient(var(--vc-pulsesync-slider-filled), var(--vc-pulsesync-slider-filled));
-    background-repeat: no-repeat;
-    background-position: left center;
-    background-size: var(--vc-pulsesync-progress) 100%;
-    transition: background-size 45ms linear;
-}
-
-.vc-pulsesync-range[data-dragging="true"]::-webkit-slider-runnable-track {
-    transition-duration: 0s;
-}
-
-/* Progress is already updated by requestAnimationFrame. A CSS transition here
- * makes the previous track position slide into the new one, so the timeline
- * intentionally snaps to the new track instead. */
-.vc-pulsesync-progress-range::-webkit-slider-runnable-track {
-    transition: none;
-}
-
-/* The browser thumb stays present for correct range geometry, but it is fully
- * transparent. A separate DOM thumb below is used for the visible circle so
- * Chromium/Discord cannot fail to repaint it on hover. */
-.vc-pulsesync-range::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 12px;
-    height: 12px;
-    margin-top: -4.5px;
-    border: 0;
-    border-radius: 50%;
-    background: transparent;
-    box-shadow: none;
-    opacity: 0;
-}
-
-.vc-pulsesync-range::-moz-range-track {
-    height: 3px;
-    border: 0;
-    border-radius: 999px;
-    background: var(--vc-pulsesync-slider-rest);
-}
-
-.vc-pulsesync-range::-moz-range-progress {
-    height: 3px;
-    border-radius: 999px;
-    background: var(--vc-pulsesync-slider-filled);
-}
-
-.vc-pulsesync-range::-moz-range-thumb {
-    width: 12px;
-    height: 12px;
-    border: 0;
-    border-radius: 50%;
-    background: transparent;
-    box-shadow: none;
-    opacity: 0;
-}
-
-.vc-pulsesync-range-thumb {
-    position: absolute;
-    z-index: 2;
-    top: 50%;
-    left: clamp(6px, var(--vc-pulsesync-progress), calc(100% - 6px));
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    pointer-events: none;
-    background: var(--vc-pulsesync-accent);
-    box-shadow: 0 2px 7px rgba(0, 0, 0, 0.34);
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(.72);
-    transition: opacity .14s ease, transform .14s cubic-bezier(.2, .8, .2, 1);
-    will-change: opacity, transform;
-}
-
-.vc-pulsesync-range-shell:hover .vc-pulsesync-range-thumb,
-.vc-pulsesync-range-shell[data-dragging="true"] .vc-pulsesync-range-thumb,
-.vc-pulsesync-range:focus-visible + .vc-pulsesync-range-thumb {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-}
-
-.vc-pulsesync-range:disabled {
-    cursor: default;
-    opacity: .45;
-}
-
-.vc-pulsesync-range:disabled + .vc-pulsesync-range-thumb {
-    opacity: 0;
-}
-
-.vc-pulsesync-controls {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
-    margin-top: 10px;
-}
-
-.vc-pulsesync-button {
-    position: relative;
-    display: grid;
-    place-items: center;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    color: var(--vc-pulsesync-button-color);
-    background: var(--vc-pulsesync-button-bg);
-    border: 0;
-    border-radius: 999px;
-    cursor: pointer;
-    transition: color .14s ease, background-color .14s ease, transform .14s ease, box-shadow .14s ease;
-}
-
-.vc-pulsesync-button:hover {
-    color: var(--vc-pulsesync-text);
-    background: var(--vc-pulsesync-button-bg-hover);
-    box-shadow: inset 0 0 0 1px var(--vc-pulsesync-button-border);
-}
-
-.vc-pulsesync-button:active { transform: scale(.94); }
-
-.vc-pulsesync-button:focus-visible {
-    outline: 2px solid var(--vc-pulsesync-focus-ring);
-    outline-offset: 1px;
-}
-
-.vc-pulsesync-button-active {
-    color: var(--vc-pulsesync-text);
-    background: var(--vc-pulsesync-button-active-bg);
-}
-
-.vc-pulsesync-play,
-.vc-pulsesync-play:hover,
-.vc-pulsesync-play:focus-visible {
-    width: 38px;
-    height: 38px;
-    color: var(--vc-pulsesync-play-foreground);
-    background: var(--vc-pulsesync-play-background);
-    box-shadow: none;
-    transition: transform .12s ease;
-}
-
-.vc-pulsesync-like {
-    flex: 0 0 32px;
-    color: var(--vc-pulsesync-like-color);
-}
-
-.vc-pulsesync-like-liked {
-    color: var(--vc-pulsesync-text);
-    background: rgba(var(--vc-pulsesync-foreground-rgb), 0.10);
-}
-
-.vc-pulsesync-icon {
-    display: block;
-    overflow: visible;
-}
-
-.vc-pulsesync-volume-row {
-    grid-template-columns: 20px minmax(0, 1fr) 36px;
-    margin-top: 7px;
-}
-
-.vc-pulsesync-volume-row .vc-pulsesync-icon {
-    width: 16px;
-    height: 16px;
-    color: var(--vc-pulsesync-volume-icon-color);
-}
-
-.vc-pulsesync-offline {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    min-height: 52px;
-}
-
-.vc-pulsesync-offline-copy {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.vc-pulsesync-offline-copy strong,
-.vc-pulsesync-offline-copy span {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
-
-.vc-pulsesync-offline-copy strong {
-    color: var(--vc-pulsesync-text);
-    font-size: 12px;
-    line-height: 16px;
-}
-
-.vc-pulsesync-offline-copy span {
-    color: var(--vc-pulsesync-text-muted);
-    font-size: 10px;
-    line-height: 14px;
-}
-
-/* v2.5.4: dynamic background + bottom separator + long thin aligned sliders */
-.vc-pulsesync-progress-row,
-.vc-pulsesync-volume-row {
-    grid-template-columns: 34px minmax(0, 1fr) 34px;
-    gap: 6px;
-}
-
-.vc-pulsesync-progress-row {
-    margin-top: 9px;
-}
-
-.vc-pulsesync-volume-row {
-    margin-top: 8px;
-}
-
-.vc-pulsesync-progress-range,
-.vc-pulsesync-volume-range {
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-    justify-self: stretch;
-}
-
-.vc-pulsesync-volume-row .vc-pulsesync-icon {
-    justify-self: center;
-}
-
-/* v3.0.2: expanded player, queue, mute control, cover colors and transitions */
-.vc-pulsesync-cover-button {
-    position: relative;
-    flex: 0 0 48px;
-    width: 48px;
-    height: 48px;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    color: inherit;
-    background: transparent;
-    border: 0;
-    border-radius: 10px;
-    cursor: pointer;
-    outline: none;
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
-}
-
-.vc-pulsesync-cover-button:focus-visible {
-    outline: 2px solid var(--vc-pulsesync-focus-ring);
-    outline-offset: 2px;
-}
-
-.vc-pulsesync-cover-button .vc-pulsesync-cover {
-    box-shadow: none;
-}
-
-.vc-pulsesync-cover-layer {
-    position: absolute;
-    inset: 0;
-    width: 48px;
-    height: 48px;
-    max-width: none;
-    flex: none;
-}
-
-.vc-pulsesync-cover-incoming {
-    z-index: 2;
-    animation: vc-pulsesync-cover-in .30s cubic-bezier(.2, .8, .2, 1) both;
-}
-
-.vc-pulsesync-cover-outgoing {
-    z-index: 1;
-    animation: vc-pulsesync-cover-out .30s ease both;
-}
-
-.vc-pulsesync-track-change {
-    animation: vc-pulsesync-track-copy-in .28s cubic-bezier(.2, .8, .2, 1) both;
-}
-
-@keyframes vc-pulsesync-cover-in {
-    from { opacity: 0; transform: scale(1.06); }
-    to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes vc-pulsesync-cover-out {
-    from { opacity: 1; transform: scale(1); }
-    to { opacity: 0; transform: scale(.96); }
-}
-
-@keyframes vc-pulsesync-track-copy-in {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.vc-pulsesync-header-actions {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.vc-pulsesync-queue-button {
-    position: relative;
-}
-
-.vc-pulsesync-queue-badge {
-    position: absolute;
-    top: -3px;
-    right: -4px;
-    display: grid;
-    place-items: center;
-    min-width: 14px;
-    height: 14px;
-    padding: 0 3px;
-    color: var(--vc-pulsesync-play-foreground);
-    background: var(--vc-pulsesync-play-background);
-    border: 2px solid var(--vc-pulsesync-background);
-    border-radius: 999px;
-    font-size: 8px;
-    line-height: 10px;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-}
-
-.vc-pulsesync-volume-button {
-    display: grid;
-    place-items: center;
+.vc-ymsync-icon {
     width: 20px;
     height: 20px;
-    margin: 0;
-    padding: 0;
-    color: var(--vc-pulsesync-volume-icon-color);
-    background: transparent;
-    border: 0;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: color .14s ease, background-color .14s ease, transform .14s ease;
+    color: inherit;
+    fill: currentColor;
 }
 
-.vc-pulsesync-volume-button:hover {
-    color: var(--vc-pulsesync-text);
-    background: var(--vc-pulsesync-button-bg-hover);
-}
-
-.vc-pulsesync-volume-button:active { transform: scale(.92); }
-
-.vc-pulsesync-volume-button:focus-visible {
-    outline: 2px solid var(--vc-pulsesync-focus-ring);
-    outline-offset: 1px;
-}
-
-.vc-pulsesync-volume-button .vc-pulsesync-icon {
-    width: 16px;
-    height: 16px;
-    color: currentColor;
-}
-
-/* Portal theme variables. They mirror the compact player without inheriting
- * its layout properties. */
-.vc-pulsesync-modal-backdrop {
-    --vc-pulsesync-foreground-rgb: 255, 255, 255;
-    --vc-pulsesync-accent: rgb(var(--vc-pulsesync-foreground-rgb));
-    --vc-pulsesync-background: #292c3e;
-    --vc-pulsesync-theme-accent: #292c3e;
-    --vc-pulsesync-surface-border: rgba(var(--vc-pulsesync-foreground-rgb), 0.10);
-    --vc-pulsesync-text: rgb(var(--vc-pulsesync-foreground-rgb));
-    --vc-pulsesync-text-muted: rgba(var(--vc-pulsesync-foreground-rgb), 0.76);
-    --vc-pulsesync-text-faint: rgba(var(--vc-pulsesync-foreground-rgb), 0.60);
-    --vc-pulsesync-cover-background: rgba(var(--vc-pulsesync-foreground-rgb), 0.08);
-    --vc-pulsesync-button-color: rgba(var(--vc-pulsesync-foreground-rgb), 0.88);
-    --vc-pulsesync-button-bg: rgba(var(--vc-pulsesync-foreground-rgb), 0.08);
-    --vc-pulsesync-button-bg-hover: rgba(var(--vc-pulsesync-foreground-rgb), 0.14);
-    --vc-pulsesync-button-active-bg: rgba(var(--vc-pulsesync-foreground-rgb), 0.18);
-    --vc-pulsesync-button-border: rgba(var(--vc-pulsesync-foreground-rgb), 0.08);
-    --vc-pulsesync-focus-ring: rgba(var(--vc-pulsesync-foreground-rgb), 0.42);
-    --vc-pulsesync-play-background: rgb(var(--vc-pulsesync-foreground-rgb));
-    --vc-pulsesync-play-foreground: #111318;
-    position: fixed;
-    inset: 0;
-    z-index: 100000;
-    display: grid;
-    place-items: center;
-    padding: 24px;
-    color: var(--vc-pulsesync-text);
-    background: rgba(0, 0, 0, 0.72);
-    backdrop-filter: blur(10px);
-    animation: vc-pulsesync-backdrop-in .18s ease both;
-}
-
-.vc-pulsesync-modal-backdrop.vc-pulsesync-light-theme {
-    --vc-pulsesync-foreground-rgb: 0, 0, 0;
-    --vc-pulsesync-play-foreground: #ffffff;
-}
-
-.vc-pulsesync-modal {
-    font-family: "JetBrainsMono Nerd Font", "JetBrainsMono Nerd Font Mono", "JetBrains Mono", monospace;
-    width: min(820px, calc(100vw - 48px));
-    max-height: min(760px, calc(100vh - 48px));
+.vc-ymsync-root .vc-ymsync-btn,
+.vc-ymsync-root button.vc-ymsync-btn {
     display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    color: var(--vc-pulsesync-text);
-    background: var(--vc-pulsesync-background);
-    border: 1px solid var(--vc-pulsesync-surface-border);
-    border-radius: 20px;
-    box-shadow: 0 28px 90px rgba(0, 0, 0, 0.50);
-    animation: vc-pulsesync-modal-in .24s cubic-bezier(.2, .8, .2, 1) both;
-}
-
-@keyframes vc-pulsesync-backdrop-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes vc-pulsesync-modal-in {
-    from { opacity: 0; transform: translateY(12px) scale(.985); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.vc-pulsesync-modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 18px 20px 12px;
-}
-
-.vc-pulsesync-modal-header h2 {
-    margin: 2px 0 0;
-    color: var(--vc-pulsesync-text);
-    font-size: 20px;
-    line-height: 24px;
-}
-
-.vc-pulsesync-modal-kicker {
-    color: var(--vc-pulsesync-text-faint);
-    font-size: 10px;
-    line-height: 12px;
-    font-weight: 800;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-}
-
-.vc-pulsesync-modal-close {
-    display: grid;
-    place-items: center;
-    width: 36px;
-    height: 36px;
-    padding: 0;
-    color: var(--vc-pulsesync-button-color);
-    background: var(--vc-pulsesync-button-bg);
-    border: 0;
-    border-radius: 999px;
-    cursor: pointer;
-}
-
-.vc-pulsesync-modal-close:hover {
-    color: var(--vc-pulsesync-text);
-    background: var(--vc-pulsesync-button-bg-hover);
-}
-
-.vc-pulsesync-modal-close:focus-visible {
-    outline: 2px solid var(--vc-pulsesync-focus-ring);
-    outline-offset: 2px;
-}
-
-.vc-pulsesync-modal-hero {
-    display: grid;
-    grid-template-columns: 210px minmax(0, 1fr);
-    gap: 22px;
-    align-items: center;
-    padding: 4px 20px 20px;
-    animation: vc-pulsesync-track-copy-in .28s cubic-bezier(.2, .8, .2, 1) both;
-}
-
-.vc-pulsesync-modal-cover {
-    width: 210px;
-    height: 210px;
-    max-width: none;
-    flex: none;
-    border-radius: 16px;
-    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
-}
-
-.vc-pulsesync-modal-track {
-    min-width: 0;
-}
-
-.vc-pulsesync-modal-track h3 {
-    margin: 0 0 6px;
-    overflow-wrap: anywhere;
-    color: var(--vc-pulsesync-text);
-    font-size: 26px;
-    line-height: 31px;
-}
-
-.vc-pulsesync-modal-artists,
-.vc-pulsesync-modal-album {
-    color: var(--vc-pulsesync-text-muted);
-    font-size: 14px;
-    line-height: 20px;
-}
-
-.vc-pulsesync-modal-artists a,
-.vc-pulsesync-modal-album {
-    color: var(--vc-pulsesync-text-muted);
-    text-decoration: none;
-}
-
-.vc-pulsesync-modal-artists a:hover,
-.vc-pulsesync-modal-album:hover {
-    color: var(--vc-pulsesync-text);
-    text-decoration: underline;
-    text-underline-offset: 2px;
-}
-
-.vc-pulsesync-modal-facts {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 15px;
-}
-
-.vc-pulsesync-modal-facts span {
-    display: flex;
-    flex-direction: column;
-    min-width: 88px;
-    padding: 8px 10px;
-    color: var(--vc-pulsesync-text);
-    background: var(--vc-pulsesync-button-bg);
-    border: 1px solid var(--vc-pulsesync-button-border);
-    border-radius: 10px;
-    font-size: 12px;
-}
-
-.vc-pulsesync-modal-facts strong {
-    margin-bottom: 2px;
-    color: var(--vc-pulsesync-text-faint);
-    font-size: 9px;
-    text-transform: uppercase;
-    letter-spacing: .06em;
-}
-
-.vc-pulsesync-modal-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 14px;
-}
-
-.vc-pulsesync-action {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    min-height: 34px;
-    padding: 7px 11px;
-    color: var(--vc-pulsesync-button-color);
-    background: var(--vc-pulsesync-button-bg);
-    border: 1px solid var(--vc-pulsesync-button-border);
-    border-radius: 9px;
-    font: inherit;
-    font-size: 12px;
-    font-weight: 650;
-    text-decoration: none;
-    cursor: pointer;
-    transition: color .14s ease, background-color .14s ease, transform .14s ease;
-}
-
-.vc-pulsesync-action:hover {
-    color: var(--vc-pulsesync-text);
-    background: var(--vc-pulsesync-button-bg-hover);
-    text-decoration: none;
-}
-
-.vc-pulsesync-action:active { transform: scale(.97); }
-.vc-pulsesync-action .vc-pulsesync-icon { width: 16px; height: 16px; }
-
-.vc-pulsesync-modal-tabs {
-    display: flex;
-    gap: 4px;
-    padding: 0 20px;
-    border-bottom: 1px solid var(--vc-pulsesync-surface-border);
-}
-
-.vc-pulsesync-modal-tabs button {
-    position: relative;
-    padding: 10px 12px 11px;
-    color: var(--vc-pulsesync-text-faint);
-    background: transparent;
-    border: 0;
-    cursor: pointer;
-    font: inherit;
-    font-size: 13px;
-    font-weight: 700;
-}
-
-.vc-pulsesync-modal-tabs button:hover,
-.vc-pulsesync-modal-tabs button.active {
-    color: var(--vc-pulsesync-text);
-}
-
-.vc-pulsesync-modal-tabs button.active::after {
-    content: "";
-    position: absolute;
-    right: 10px;
-    bottom: -1px;
-    left: 10px;
-    height: 2px;
-    background: var(--vc-pulsesync-text);
-    border-radius: 999px 999px 0 0;
-}
-
-.vc-pulsesync-modal-content {
-    min-height: 210px;
-    overflow: auto;
-    padding: 18px 20px 22px;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-}
-
-.vc-pulsesync-modal-content::-webkit-scrollbar {
-    display: none;
-    width: 0;
-    height: 0;
-}
-
-.vc-pulsesync-details-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-}
-
-.vc-pulsesync-details-grid > div {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 12px;
-    background: var(--vc-pulsesync-button-bg);
-    border: 1px solid var(--vc-pulsesync-button-border);
-    border-radius: 11px;
-}
-
-.vc-pulsesync-details-grid strong {
-    color: var(--vc-pulsesync-text-faint);
-    font-size: 10px;
-    letter-spacing: .04em;
-    text-transform: uppercase;
-}
-
-.vc-pulsesync-details-grid span {
-    overflow-wrap: anywhere;
-    color: var(--vc-pulsesync-text);
-    font-size: 13px;
-}
-
-
-.vc-pulsesync-empty-state {
-    min-height: 190px;
-    display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 7px;
-    color: var(--vc-pulsesync-text-muted);
-    text-align: center;
-}
-
-.vc-pulsesync-empty-state .vc-pulsesync-icon {
-    width: 34px;
-    height: 34px;
-    margin-bottom: 3px;
-    color: var(--vc-pulsesync-text-faint);
-}
-
-.vc-pulsesync-empty-state strong { color: var(--vc-pulsesync-text); }
-.vc-pulsesync-empty-state span { max-width: 420px; font-size: 12px; }
-
-.vc-pulsesync-queue-list {
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-}
-
-.vc-pulsesync-queue-item {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    align-items: center;
-    padding: 6px;
-    background: var(--vc-pulsesync-button-bg);
-    border: 1px solid var(--vc-pulsesync-button-border);
-    border-radius: 12px;
-}
-
-.vc-pulsesync-queue-item-current {
-    background: var(--vc-pulsesync-button-active-bg);
-    box-shadow: inset 3px 0 0 var(--vc-pulsesync-text);
-}
-
-.vc-pulsesync-queue-position-label {
-    grid-column: 1 / -1;
-    width: fit-content;
-    margin: -1px 0 -2px 52px;
-    color: var(--vc-pulsesync-text-faint);
-    font-size: 9px;
-    line-height: 11px;
-    font-weight: 700;
-    letter-spacing: .06em;
-    text-transform: uppercase;
-}
-
-.vc-pulsesync-queue-main {
-    min-width: 0;
-    display: grid;
-    grid-template-columns: 42px minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 10px;
+    margin: 0 2px;
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
     padding: 0;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--interactive-icon-default);
+}
+
+.vc-ymsync-root .vc-ymsync-btn:hover:not(:disabled),
+.vc-ymsync-root button.vc-ymsync-btn:hover:not(:disabled) {
+    color: var(--interactive-icon-hover);
+    background-color: var(--background-mod-strong);
+}
+
+.vc-ymsync-root .vc-ymsync-btn:disabled {
+    opacity: 0.4;
+}
+
+.vc-ymsync-root .vc-ymsync-btn .vc-ymsync-icon {
     color: inherit;
-    background: transparent;
-    border: 0;
-    text-align: left;
-    cursor: pointer;
+    fill: currentColor;
 }
 
-.vc-pulsesync-queue-main:disabled { cursor: default; }
-.vc-pulsesync-queue-main:not(:disabled):hover .vc-pulsesync-queue-copy strong { text-decoration: underline; }
-
-.vc-pulsesync-queue-cover {
-    width: 42px;
-    height: 42px;
-    max-width: none;
-    flex: none;
-    border-radius: 8px;
-    box-shadow: 0 5px 12px rgba(0, 0, 0, 0.22);
+.vc-ymsync-root .vc-ymsync-btn-active,
+.vc-ymsync-root button.vc-ymsync-btn-active {
+    color: var(--interactive-icon-active);
+    background-color: color-mix(in hsl, var(--text-brand), transparent 90%);
 }
 
-.vc-pulsesync-queue-copy {
-    min-width: 0;
+.vc-ymsync-root .vc-ymsync-btn-active:hover:not(:disabled),
+.vc-ymsync-root button.vc-ymsync-btn-active:hover:not(:disabled) {
+    background-color: color-mix(in hsl, var(--text-brand), transparent 80%);
+}
+
+.vc-ymsync-root .vc-ymsync-btn-primary .vc-ymsync-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.vc-ymsync-head .vc-ymsync-btn .vc-ymsync-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.vc-ymsync-progress {
+    position: relative;
+    width: 100%;
+    color: var(--text-default);
+    margin: 8px 0 0;
+    padding-bottom: 8px;
+}
+
+.vc-ymsync-progress-track > [--slider] {
+    flex-grow: 1;
+    width: 100%;
+    padding: 0 !important;
+}
+
+.vc-ymsync-progress-track > [--slider] [--bar] {
+    height: 3px !important;
+    top: calc(12px - 4px / 2 + var(--bar-offset));
+}
+
+.vc-ymsync-progress-track > [--slider] [--barFill] {
+    background-color: var(--interactive-icon-active);
+}
+
+.vc-ymsync-progress-track > [--slider] [--grabber] {
+    height: 16px !important;
+    width: 16px !important;
+    margin-top: calc(17px / -2 + var(--bar-offset) / 2);
+    margin-left: -0.5px;
+    background-color: var(--interactive-icon-active);
+    border-color: var(--interactive-icon-default);
+    color: var(--interactive-icon-default);
+    opacity: 0;
+    transition: opacity 0.1s;
+}
+
+.vc-ymsync-progress:hover .vc-ymsync-progress-track > [--slider] [--grabber] {
+    opacity: 1;
+}
+
+.vc-ymsync-progress-times {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    justify-content: space-between;
+    margin-top: 2px;
 }
 
-.vc-pulsesync-queue-copy strong,
-.vc-pulsesync-queue-copy span {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+.vc-ymsync-time {
+    font-size: 12px;
+    font-family: var(--font-code);
 }
 
-.vc-pulsesync-queue-copy strong {
-    color: var(--vc-pulsesync-text);
-    font-size: 13px;
+.vc-ymsync-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.vc-pulsesync-queue-copy span,
-.vc-pulsesync-queue-duration {
-    color: var(--vc-pulsesync-text-faint);
-    font-size: 11px;
+.vc-ymsync-volume {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    margin-top: 8px;
+    padding-right: 2px;
 }
 
-@media (max-width: 680px) {
-    .vc-pulsesync-modal-backdrop { padding: 12px; }
-    .vc-pulsesync-modal { width: calc(100vw - 24px); max-height: calc(100vh - 24px); }
-    .vc-pulsesync-modal-hero { grid-template-columns: 120px minmax(0, 1fr); gap: 14px; }
-    .vc-pulsesync-modal-cover { width: 120px; height: 120px; border-radius: 12px; }
-    .vc-pulsesync-modal-track h3 { font-size: 20px; line-height: 24px; }
-    .vc-pulsesync-details-grid { grid-template-columns: 1fr; }
-    .vc-pulsesync-queue-position-label { margin-left: 0; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .vc-pulsesync-cover-incoming,
-    .vc-pulsesync-cover-outgoing,
-    .vc-pulsesync-track-change,
-    .vc-pulsesync-modal-backdrop,
-    .vc-pulsesync-modal,
-    .vc-pulsesync-modal-hero {
-        animation: none !important;
-    }
-
-    .vc-pulsesync-range::-webkit-slider-runnable-track,
-    .vc-pulsesync-range-thumb,
-    .vc-pulsesync-button,
-    .vc-pulsesync-action {
-        transition: none !important;
-    }
-}
-
-
-/* v3.0.7: JetBrainsMono Nerd Font */
-.vc-pulsesync-player button,
-.vc-pulsesync-player input,
-.vc-pulsesync-player select,
-.vc-pulsesync-player textarea,
-.vc-pulsesync-modal button,
-.vc-pulsesync-modal input,
-.vc-pulsesync-modal select,
-.vc-pulsesync-modal textarea {
-    font-family: inherit;
-}
-
-/* v3.0.8: hide cover space when no artwork is available */
-.vc-pulsesync-cover-button:empty {
-    display: none;
-}
-
-.vc-pulsesync-modal-hero:not(:has(.vc-pulsesync-modal-cover)) {
-    grid-template-columns: minmax(0, 1fr);
+.vc-ymsync-volume-track {
+    flex: 1 1 auto;
+    min-width: 0;
 }

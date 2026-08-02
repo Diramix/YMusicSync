@@ -1,96 +1,66 @@
 /*
- * Vencord/Equicord user plugin
+ * Vencord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import "./styles.css";
-
+import { disableStyle, enableStyle, setStyleClassNames } from "@api/Styles";
 import ErrorBoundary from "@components/ErrorBoundary";
-import { getIntlMessage } from "@utils/discord";
 import definePlugin, { ReporterTestable } from "@utils/types";
-import { createRoot } from "@webpack/common";
+import { findCssClassesLazy } from "@webpack";
 
-import { PulseSyncPlayer } from "./Player";
+import { YMusicSyncPlayer } from "./components/Player";
 import { settings } from "./settings";
-import { PulseSyncStore } from "./store";
+import { YMusicSyncStore } from "./store";
+import style from "./styles.css?managed";
 
-const MOUNT_ID = "vc-pulsesync-mount";
-const PANEL_SELECTOR = '[class*="panels_"]';
-
-let observer: MutationObserver | null = null;
-let root: ReturnType<typeof createRoot> | null = null;
-let mountNode: HTMLDivElement | null = null;
-
-function findAccountPanel(): Element | null {
-    const label = getIntlMessage("USER_PROFILE_ACCOUNT_POPOUT_BUTTON_A11Y_LABEL");
-    if (!label) return null;
-
-    const anchor = document.querySelector(`[aria-label="${CSS.escape(label)}"]`);
-    return anchor?.closest(PANEL_SELECTOR) ?? null;
-}
-
-function ensureMounted(): void {
-    const panel = findAccountPanel();
-    if (!panel) return;
-
-    if (!mountNode) {
-        mountNode = document.createElement("div");
-        mountNode.id = MOUNT_ID;
-    }
-
-    if (!panel.contains(mountNode)) {
-        panel.insertBefore(mountNode, panel.firstChild);
-    }
-
-    if (!root) {
-        root = createRoot(mountNode);
-        root.render(
-            <ErrorBoundary noop>
-                <PulseSyncPlayer />
-            </ErrorBoundary>
-        );
-    }
-}
-
-function startWatching(): void {
-    ensureMounted();
-
-    observer = new MutationObserver(() => ensureMounted());
-    observer.observe(document.body, { childList: true, subtree: true });
-}
-
-function stopWatching(): void {
-    observer?.disconnect();
-    observer = null;
-
-    root?.unmount();
-    root = null;
-
-    mountNode?.remove();
-    mountNode = null;
-}
+const SliderClasses = findCssClassesLazy("slider", "bar", "barFill", "grabber");
 
 export default definePlugin({
-    name: "YMControls",
-    description: "Control Yandex Music in Pulse Sync from an advanced player above the Discord account panel.",
-    authors: [{ name: "Local user", id: 0n }],
+    name: "YMusicSync",
+    description: "Control Yandex Music through Ynison",
+    authors: [{ name: "diram1x", id: 0n }],
     tags: ["Media", "Utility"],
-    searchTerms: ["Yandex Music", "Pulse Sync", "YMControls", "Music Controls"],
+    searchTerms: ["Yandex Music", "Ynison", "YMusicSync", "Music Controls"],
     settings,
     reporterTestable: ReporterTestable.None,
 
+    patches: [
+        {
+            find: "#{intl::USER_PROFILE_ACCOUNT_POPOUT_BUTTON_A11Y_LABEL}",
+            replacement: {
+                // The callee is a member expression when another plugin (MusicControls)
+                // already wrapped the account panel.
+                match: /(?<=\i\.jsxs?\)\()((?:\i\.)*\i(?:\["[^"]+"\])?(?:\.\i)*),{(?=[^})]*?userTag:\i,occluded:)/,
+                replace: "$self.PanelWrapper,{YMusicSync:$1,"
+            }
+        }
+    ],
+
+    PanelWrapper({ YMusicSync, ...props }) {
+        return (
+            <>
+                <ErrorBoundary noop>
+                    <YMusicSyncPlayer />
+                </ErrorBoundary>
+                <YMusicSync {...props} />
+            </>
+        );
+    },
+
     start() {
-        void PulseSyncStore.start();
-        startWatching();
+        setStyleClassNames(style, { ...SliderClasses }, false);
+        enableStyle(style);
+        void YMusicSyncStore.start();
     },
 
     stop() {
-        void PulseSyncStore.stop();
-        stopWatching();
+        disableStyle(style);
+        void YMusicSyncStore.stop();
     },
 
     toolboxActions: {
-        "Restart YMControls bridge": () => void PulseSyncStore.restart(),
-        "Log YMControls diagnostics": () => void PulseSyncStore.logDiagnostics()
+        "Reconnect to Ynison": () => void YMusicSyncStore.restart(),
+        "Log YMusicSync diagnostics": () => void YMusicSyncStore.logDiagnostics()
     }
 });
