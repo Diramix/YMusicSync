@@ -10,9 +10,9 @@ import { join } from "node:path";
 
 import { app } from "electron";
 
-import type { YnisonVersion } from "../types";
 import { CLIENT_NAME, CLIENT_VERSION } from "./constants";
 import { errorMessage, log, state } from "./state";
+import type { YnisonVersion } from "./ynisonTypes";
 
 function deviceIdPath(): string {
     return join(app.getPath("userData"), "ymusicsync-device.json");
@@ -28,7 +28,8 @@ export function getDeviceId(): string {
             state.deviceId = stored.deviceId;
             return state.deviceId;
         }
-    } catch {
+    } catch (error) {
+        log(`No stored device id, generating a new one: ${errorMessage(error)}`);
     }
 
     state.deviceId = randomUUID();
@@ -54,12 +55,10 @@ export function deviceInfo() {
     };
 }
 
-// Ynison orders writes by (timestamp_ms, version) over the whole int64 range.
-// A small counter always loses the compare against a real player.
 export function newVersion(): YnisonVersion {
     return {
         device_id: getDeviceId(),
-        version: Math.floor(Math.random() * 0x8000000000000000),
+        version: Number.MAX_SAFE_INTEGER - Math.floor(Math.random() * 1000),
         timestamp_ms: Date.now()
     };
 }

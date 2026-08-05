@@ -12,7 +12,13 @@ const eventQueue: YnisonEvent[] = [];
 let eventWaiter: ((events: YnisonEvent[]) => void) | null = null;
 
 export function enqueue(event: YnisonEvent): void {
-    eventQueue.push(event);
+    const stale = event.type === "snapshot" || event.type === "status"
+        ? eventQueue.findIndex(queued => queued.type === event.type)
+        : -1;
+
+    if (stale === -1) eventQueue.push(event);
+    else eventQueue[stale] = event;
+
     if (eventQueue.length > MAX_EVENTS) {
         eventQueue.splice(0, eventQueue.length - MAX_EVENTS);
     }
@@ -24,7 +30,22 @@ export function enqueue(event: YnisonEvent): void {
     }
 }
 
+function sameSnapshot(a: PlayerSnapshot, b: PlayerSnapshot): boolean {
+    for (const key of Object.keys(a) as (keyof PlayerSnapshot)[]) {
+        if (key === "devices") continue;
+        if (a[key] !== b[key]) return false;
+    }
+
+    if (a.devices.length !== b.devices.length) return false;
+    return a.devices.every((device, index) => {
+        const other = b.devices[index];
+        return device.id === other.id && device.title === other.title && device.canBePlayer === other.canBePlayer;
+    });
+}
+
 export function emitSnapshot(snapshot: PlayerSnapshot): void {
+    if (state.lastSnapshot && sameSnapshot(state.lastSnapshot, snapshot)) return;
+
     state.lastSnapshot = snapshot;
     enqueue({ type: "snapshot", snapshot, at: Date.now() });
 }
@@ -40,9 +61,11 @@ export function emitStatus(connectionState: YnisonStatus["state"], error: string
 }
 
 export function awaitEvents(timeoutMs: number): Promise<YnisonEvent[]> {
-    if (eventQueue.length > 0) return Promise.resolve(eventQueue.splice(0, MAX_EVENTS));
+    const previous = eventWaiter;
+    eventWaiter = null;
+    previous?.([]);
 
-    eventWaiter?.([]);
+    if (eventQueue.length > 0) return Promise.resolve(eventQueue.splice(0, MAX_EVENTS));
 
     return new Promise(resolve => {
         const waiter = (events: YnisonEvent[]) => {

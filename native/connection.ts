@@ -4,12 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-// Ynison is the Yandex Music cross-device player state service: the plugin joins
-// it as a remote controller device, mirrors the shared state and writes changes back.
-
 import { randomUUID } from "node:crypto";
 
-import type { YnisonDevice, YnisonState } from "../types";
 import {
     DEVICE_SELECT_RETRY_MS,
     DEVICE_TYPE_CODE,
@@ -21,10 +17,12 @@ import {
 } from "./constants";
 import { deviceInfo, isSelfDevice, newVersion } from "./device";
 import { emitSnapshot, emitStatus, enqueue } from "./events";
-import { mapStateToSnapshot, resolveArtists } from "./mapping";
+import { mapStateToSnapshot } from "./mapping";
 import { errorMessage, log, queueConnectionOperation, state } from "./state";
 import { isStationSelected } from "./station";
+import { clearTrackCache, resolveTracks } from "./tracks";
 import { YnisonSocket } from "./ynisonSocket";
+import type { YnisonDevice, YnisonState } from "./ynisonTypes";
 
 interface RedirectorResponse {
     host: string;
@@ -147,8 +145,6 @@ function sendFullState(client: YnisonSocket): void {
             device: {
                 volume: 0,
                 capabilities: {
-                    // Never advertise ourselves as playable, otherwise Ynison can hand
-                    // playback back to this plugin and it ends up controlling itself.
                     can_be_player: false,
                     can_be_remote_controller: true,
                     volume_granularity: 16
@@ -208,6 +204,10 @@ function asYnisonState(value: unknown): YnisonState | null {
     return candidate.player_state ? candidate as YnisonState : null;
 }
 
+function pushSnapshot(): void {
+    if (state.lastState && !isStationSelected()) emitSnapshot(mapStateToSnapshot(state.lastState));
+}
+
 function handleIncoming(data: string): void {
     let parsed: IncomingMessage;
     try {
@@ -224,7 +224,7 @@ function handleIncoming(data: string): void {
             const message = typeof parsed.error === "string" ? parsed.error : parsed.error.message;
             enqueue({ type: "error", message: String(message ?? parsed.error), at: Date.now() });
         } else {
-            enqueue({ type: "log", message: `Non-state message: ${data.slice(0, 500)}`, at: Date.now() });
+            log(`Non-state message: ${data.slice(0, 200)}`);
         }
         return;
     }
@@ -232,11 +232,8 @@ function handleIncoming(data: string): void {
     state.lastState = incoming;
     autoSelectDevice(incoming);
 
-    if (isStationSelected()) return;
-
-    const snapshot = mapStateToSnapshot(incoming);
-    resolveArtists(snapshot.trackId);
-    emitSnapshot(snapshot);
+    resolveTracks(incoming, pushSnapshot);
+    pushSnapshot();
 }
 
 function scheduleReconnect(): void {
@@ -311,4 +308,6 @@ export function closeConnection(reason: string): void {
     state.lastSnapshot = null;
     state.selectedDeviceId = "";
     state.selectedDeviceAt = 0;
+    state.reconnectAttempts = 0;
+    clearTrackCache();
 }

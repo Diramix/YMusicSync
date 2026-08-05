@@ -129,10 +129,13 @@
 .vc-ymsync-progress-track > [--slider] {
     flex-grow: 1;
     width: 100%;
+
+    /* Discord's slider ships its own padding, which would offset the bar here. */
     padding: 0 !important;
 }
 
 .vc-ymsync-progress-track > [--slider] [--bar] {
+    /* The bar height is set by Discord on the element itself. */
     height: 3px !important;
     top: calc(12px - 4px / 2 + var(--bar-offset));
 }
@@ -142,6 +145,7 @@
 }
 
 .vc-ymsync-progress-track > [--slider] [--grabber] {
+    /* Discord sizes the grabber inline, so a smaller handle needs to win here. */
     height: 16px !important;
     width: 16px !important;
     margin-top: calc(17px / -2 + var(--bar-offset) / 2);

@@ -9,18 +9,31 @@ import type { IpcMainInvokeEvent } from "electron";
 import type { CommandPayload, PlayerCommand, YnisonEvent, YnisonStatus } from "../types";
 import { runCommand } from "./commands";
 import { closeConnection, openConnection } from "./connection";
-import { resolveCoverDataUrl } from "./covers";
+import { TOKEN_PATTERN } from "./constants";
+import { clearCoverCache, resolveCoverDataUrl } from "./covers";
 import { awaitEvents, emitStatus, statusSnapshot } from "./events";
 import { queueConnectionOperation, state } from "./state";
 import { refreshStations, startStations, stopStations } from "./station";
+
+const PLAYER_COMMANDS = new Set<PlayerCommand>([
+    "playPause", "previous", "next", "seek", "setVolume",
+    "toggleMute", "toggleShuffle", "cycleRepeat", "setActiveDevice"
+]);
 
 function clampInt(value: number, min: number, max: number, fallback: number): number {
     if (!Number.isFinite(value)) return fallback;
     return Math.min(Math.max(min, Math.trunc(value)), max);
 }
 
+// The token goes straight into HTTP and websocket headers, so anything that is
+// not a plain token character is dropped rather than passed on.
+function sanitizeToken(rawToken: unknown): string {
+    const token = String(rawToken ?? "").trim();
+    return TOKEN_PATTERN.test(token) ? token : "";
+}
+
 export function connect(_: IpcMainInvokeEvent, rawToken: string): Promise<YnisonStatus> {
-    const nextToken = String(rawToken ?? "").trim();
+    const nextToken = sanitizeToken(rawToken);
 
     return queueConnectionOperation(async () => {
         if (nextToken === state.token && state.socket?.isOpen) return statusSnapshot();
@@ -42,6 +55,7 @@ export function connect(_: IpcMainInvokeEvent, rawToken: string): Promise<Ynison
 export function disconnect(_: IpcMainInvokeEvent): YnisonStatus {
     closeConnection("Disconnected by user");
     stopStations();
+    clearCoverCache();
     state.token = "";
     emitStatus("idle", null);
     return statusSnapshot();
@@ -52,6 +66,8 @@ export function getStatus(_: IpcMainInvokeEvent): YnisonStatus {
 }
 
 export function command(_: IpcMainInvokeEvent, name: PlayerCommand, payload: CommandPayload = {}): boolean {
+    if (!PLAYER_COMMANDS.has(name)) return false;
+
     const value = Number(payload.value);
     return runCommand(name, {
         value: Number.isFinite(value) ? value : undefined,
@@ -60,7 +76,7 @@ export function command(_: IpcMainInvokeEvent, name: PlayerCommand, payload: Com
 }
 
 export function connectStations(_: IpcMainInvokeEvent, rawToken: string): Promise<void> {
-    return startStations(String(rawToken ?? "").trim().slice(0, 512));
+    return startStations(sanitizeToken(rawToken));
 }
 
 export function rescanStations(_: IpcMainInvokeEvent): Promise<void> {

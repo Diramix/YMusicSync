@@ -6,15 +6,15 @@
 
 import { net } from "electron";
 
+import { COVER_SIZE, COVER_SIZE_PLACEHOLDER } from "../constants";
 import {
     CLIENT_NAME,
     CLIENT_VERSION,
     COVER_FETCH_TIMEOUT_MS,
     COVER_HOSTS,
     COVER_REDIRECT_STATUSES,
-    COVER_SIZE,
     MAX_COVER_BYTES,
-    MAX_COVER_CACHE_ENTRIES,
+    MAX_COVER_CACHE_BYTES,
     MAX_COVER_REDIRECTS
 } from "./constants";
 import { errorMessage, log } from "./state";
@@ -25,16 +25,32 @@ interface DownloadedCover {
 }
 
 const cache = new Map<string, string>();
+const pending = new Map<string, Promise<string>>();
+let cachedBytes = 0;
+
+export function clearCoverCache(): void {
+    cache.clear();
+    cachedBytes = 0;
+}
+
+function remember(key: string, dataUrl: string): void {
+    cache.set(key, dataUrl);
+    cachedBytes += dataUrl.length;
+
+    while (cachedBytes > MAX_COVER_CACHE_BYTES && cache.size > 1) {
+        const oldest = cache.keys().next().value as string;
+        cachedBytes -= cache.get(oldest)?.length ?? 0;
+        cache.delete(oldest);
+    }
+}
 
 function withCoverSize(url: URL): URL {
-    const href = url.href.replace(
-        /(?:%25%25|%%|%257Bsize%257D|%7Bsize%7D|\{size\}|%25s|%s)/gi,
-        COVER_SIZE
-    );
+    const href = url.href.replace(COVER_SIZE_PLACEHOLDER, COVER_SIZE);
 
     try {
         return new URL(href);
-    } catch {
+    } catch (error) {
+        log(`Keeping the original cover url: ${errorMessage(error)}`);
         return url;
     }
 }
@@ -45,7 +61,8 @@ function parseAllowedUrl(value: string | null, base?: URL): URL | null {
     let url: URL;
     try {
         url = base ? new URL(value, base) : new URL(value);
-    } catch {
+    } catch (error) {
+        log(`Ignoring an unparsable cover url: ${errorMessage(error)}`);
         return null;
     }
 
@@ -53,6 +70,28 @@ function parseAllowedUrl(value: string | null, base?: URL): URL | null {
     if (url.port && url.port !== "443") return null;
     if (!COVER_HOSTS.has(url.hostname.toLowerCase())) return null;
     return withCoverSize(url);
+}
+
+async function readCapped(response: Response): Promise<Buffer> {
+    const reader = response.body?.getReader();
+    if (!reader) return Buffer.from(await response.arrayBuffer()).subarray(0, MAX_COVER_BYTES);
+
+    const chunks: Buffer[] = [];
+    let total = 0;
+
+    for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        total += value.byteLength;
+        if (total > MAX_COVER_BYTES) {
+            await reader.cancel();
+            throw new Error("Cover is too large");
+        }
+        chunks.push(Buffer.from(value));
+    }
+
+    return Buffer.concat(chunks, total);
 }
 
 async function downloadCover(url: URL, redirectCount = 0): Promise<DownloadedCover> {
@@ -93,9 +132,8 @@ async function downloadCover(url: URL, redirectCount = 0): Promise<DownloadedCov
             throw new Error("Cover is too large");
         }
 
-        const body = Buffer.from(await response.arrayBuffer());
+        const body = await readCapped(response);
         if (body.length === 0) throw new Error("Cover response is empty");
-        if (body.length > MAX_COVER_BYTES) throw new Error("Cover is too large");
 
         return { body, contentType };
     } finally {
@@ -103,31 +141,33 @@ async function downloadCover(url: URL, redirectCount = 0): Promise<DownloadedCov
     }
 }
 
-function remember(key: string, value: string): void {
-    cache.delete(key);
-    cache.set(key, value);
-    while (cache.size > MAX_COVER_CACHE_ENTRIES) {
-        cache.delete(cache.keys().next().value as string);
-    }
-}
-
-export async function resolveCoverDataUrl(rawUrl: string): Promise<string> {
+export function resolveCoverDataUrl(rawUrl: string): Promise<string> {
     const url = parseAllowedUrl(String(rawUrl ?? ""));
-    if (!url) return "";
+    if (!url) return Promise.resolve("");
 
-    const cached = cache.get(url.href);
+    const { href } = url;
+    const cached = cache.get(href);
     if (cached) {
-        remember(url.href, cached);
-        return cached;
+        cache.delete(href);
+        cache.set(href, cached);
+        return Promise.resolve(cached);
     }
 
-    try {
-        const cover = await downloadCover(url);
-        const dataUrl = `data:${cover.contentType};base64,${cover.body.toString("base64")}`;
-        remember(url.href, dataUrl);
-        return dataUrl;
-    } catch (error) {
-        log(`Cover load failed for ${url.hostname}: ${errorMessage(error)}`);
-        return "";
-    }
+    const inFlight = pending.get(href);
+    if (inFlight) return inFlight;
+
+    const download = downloadCover(url)
+        .then(cover => {
+            const dataUrl = `data:${cover.contentType};base64,${cover.body.toString("base64")}`;
+            remember(href, dataUrl);
+            return dataUrl;
+        })
+        .catch(error => {
+            log(`Cover load failed for ${url.hostname}: ${errorMessage(error)}`);
+            return "";
+        })
+        .finally(() => pending.delete(href));
+
+    pending.set(href, download);
+    return download;
 }

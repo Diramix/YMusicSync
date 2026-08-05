@@ -8,6 +8,7 @@ import { createSocket, type Socket } from "node:dgram";
 import { networkInterfaces } from "node:os";
 
 import { log } from "../state";
+import { isPrivateAddress } from "./address";
 import { DISCOVERY_TIMEOUT_MS, MDNS_ADDRESS, MDNS_PORT, MDNS_QUERY_DELAYS, MDNS_SERVICE } from "./constants";
 
 export interface DiscoveredStation {
@@ -161,10 +162,7 @@ function privateInterfaces(): string[] {
     for (const items of Object.values(networkInterfaces())) {
         for (const item of items ?? []) {
             if (item.internal || (item.family !== "IPv4" && Number(item.family) !== 4)) continue;
-            const parts = item.address.split(".").map(Number);
-            if (parts[0] === 10 || (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) || (parts[0] === 192 && parts[1] === 168)) {
-                addresses.push(item.address);
-            }
+            if (isPrivateAddress(item.address)) addresses.push(item.address);
         }
     }
 
@@ -206,7 +204,8 @@ export function discoverStations(): Promise<DiscoveredStation[]> {
 
             try {
                 socket?.close();
-            } catch {
+            } catch (error) {
+                log(`Could not close the mDNS socket: ${String(error)}`);
             }
 
             resolve(collect(records));

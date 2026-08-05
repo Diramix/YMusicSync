@@ -10,6 +10,8 @@ import { connect as tlsConnect, type TLSSocket } from "node:tls";
 const WEBSOCKET_GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 const MAX_MESSAGE_BYTES = 8 * 1024 * 1024;
 const HANDSHAKE_TIMEOUT_MS = 15_000;
+const KEEPALIVE_DELAY_MS = 30_000;
+const EMPTY = Buffer.alloc(0);
 
 export interface SocketHandlers {
     onMessage(data: string): void;
@@ -22,7 +24,7 @@ export interface SocketOptions {
 
 export class YnisonSocket {
     private socket: TLSSocket | null = null;
-    private buffer: Buffer<ArrayBufferLike> = Buffer.alloc(0);
+    private buffer: Buffer<ArrayBufferLike> = EMPTY;
     private fragmentOpcode: number | null = null;
     private fragments: Buffer[] = [];
     private fragmentBytes = 0;
@@ -47,6 +49,8 @@ export class YnisonSocket {
                 ALPNProtocols: ["http/1.1"],
                 rejectUnauthorized: options.rejectUnauthorized !== false
             });
+
+            socket.setKeepAlive(true, KEEPALIVE_DELAY_MS);
 
             let settled = false;
             let head = Buffer.alloc(0);
@@ -154,7 +158,7 @@ export class YnisonSocket {
         this.closed = true;
         this.socket?.destroy();
         this.socket = null;
-        this.buffer = Buffer.alloc(0);
+        this.buffer = EMPTY;
         this.fragments = [];
         this.handlers.onClose(reason);
     }
@@ -165,29 +169,30 @@ export class YnisonSocket {
 
         const mask = randomBytes(4);
         const { length } = payload;
-        let header: Buffer;
+        const headerBytes = length < 126 ? 2 : length < 65536 ? 4 : 10;
 
-        if (length < 126) {
-            header = Buffer.alloc(2);
-            header[1] = 0x80 | length;
-        } else if (length < 65536) {
-            header = Buffer.alloc(4);
-            header[1] = 0x80 | 126;
-            header.writeUInt16BE(length, 2);
+        const frame = Buffer.allocUnsafe(headerBytes + 4 + length);
+        frame[0] = 0x80 | opcode;
+
+        if (headerBytes === 2) {
+            frame[1] = 0x80 | length;
+        } else if (headerBytes === 4) {
+            frame[1] = 0x80 | 126;
+            frame.writeUInt16BE(length, 2);
         } else {
-            header = Buffer.alloc(10);
-            header[1] = 0x80 | 127;
-            header.writeBigUInt64BE(BigInt(length), 2);
+            frame[1] = 0x80 | 127;
+            frame.writeBigUInt64BE(BigInt(length), 2);
         }
 
-        header[0] = 0x80 | opcode;
+        mask.copy(frame, headerBytes);
 
-        const masked = Buffer.allocUnsafe(length);
+        const body = headerBytes + 4;
         for (let index = 0; index < length; index++) {
-            masked[index] = payload[index] ^ mask[index & 3];
+            frame[body + index] = payload[index] ^ mask[index & 3];
         }
 
-        return socket.write(Buffer.concat([header, mask, masked]));
+        socket.write(frame);
+        return true;
     }
 
     private parseFrames(chunk: Buffer<ArrayBufferLike>): void {
@@ -227,7 +232,8 @@ export class YnisonSocket {
             if (this.buffer.length < offset + length) return;
 
             const payload = this.buffer.subarray(offset, offset + length);
-            this.buffer = this.buffer.subarray(offset + length);
+            const rest = this.buffer.subarray(offset + length);
+            this.buffer = rest.length === 0 ? EMPTY : Buffer.from(rest);
 
             if (!this.processFrame(fin, opcode, payload)) return;
         }

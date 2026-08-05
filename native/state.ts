@@ -4,8 +4,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import type { PlayerSnapshot, StationEntry, YnisonState, YnisonStatus } from "../types";
+import type { PlayerSnapshot, StationEntry, YnisonStatus } from "../types";
 import type { YnisonSocket } from "./ynisonSocket";
+import type { YnisonState } from "./ynisonTypes";
 
 export const state = {
     socket: null as YnisonSocket | null,
@@ -31,13 +32,13 @@ export function errorMessage(error: unknown): string {
 }
 
 export function log(message: string): void {
-    console.warn(`[YMusicSync/native] ${message}`);
+    console.log(`[YMusicSync/native] ${message}`);
 }
 
-let connectionOperation: Promise<unknown> = Promise.resolve();
+let connectionOperation: Promise<void> = Promise.resolve();
 
 export function queueConnectionOperation<T>(operation: () => Promise<T>): Promise<T> {
-    const result = connectionOperation.then(operation, operation);
+    const result = connectionOperation.then(operation);
     connectionOperation = result.then(() => undefined, () => undefined);
     return result;
 }

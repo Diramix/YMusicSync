@@ -8,9 +8,10 @@ import { randomUUID } from "node:crypto";
 
 import type { CommandPayload, PlayerCommand, PlayerSnapshot, RepeatMode, StationEntry } from "../../types";
 import { emitSnapshot, enqueue } from "../events";
-import { absoluteCoverUrl, mapStateToSnapshot } from "../mapping";
+import { absoluteCoverUrl, playerDevices } from "../mapping";
 import { errorMessage, log, state } from "../state";
 import { YnisonSocket } from "../ynisonSocket";
+import { isLocalAddress } from "./address";
 import { DISCOVERY_INTERVAL_MS, STATION_PING_MS, STATION_PREFIX, STATION_RECONNECT_MS } from "./constants";
 import { discoverStations } from "./mdns";
 import { fetchConversationToken, fetchStationNames } from "./quasar";
@@ -38,13 +39,13 @@ interface Session {
     pingTimer: NodeJS.Timeout | null;
     reconnectTimer: NodeJS.Timeout | null;
     generation: number;
+    mutedVolume: number;
 }
 
 const sessions = new Map<string, Session>();
 
 let discoveryTimer: NodeJS.Timeout | null = null;
 let refreshing = false;
-let mutedVolume = 0;
 
 export function isStationSelected(): boolean {
     return state.activeStationId.length > 0;
@@ -52,14 +53,6 @@ export function isStationSelected(): boolean {
 
 function activeSession(): Session | null {
     return sessions.get(state.activeStationId) ?? null;
-}
-
-export function stationDevices() {
-    return state.stations.map(station => ({
-        id: `${STATION_PREFIX}${station.deviceId}`,
-        title: station.name || station.deviceId,
-        canBePlayer: true
-    }));
 }
 
 function send(session: Session, payload: Record<string, unknown>): boolean {
@@ -85,8 +78,8 @@ export function stationSnapshot(): PlayerSnapshot | null {
     const session = activeSession();
     if (!session) return null;
 
-    const base = state.lastState ? mapStateToSnapshot(state.lastState) : null;
     const current = session.player?.playerState;
+    const activeDeviceId = `${STATION_PREFIX}${session.entry.deviceId}`;
 
     return {
         trackId: String(current?.id ?? ""),
@@ -102,8 +95,8 @@ export function stationSnapshot(): PlayerSnapshot | null {
         shuffle: false,
         repeat: repeatFromGlagol(current?.entityInfo?.repeatMode),
         volume: Math.min(1, Math.max(0, Number(session.player?.volume ?? 0))),
-        devices: base?.devices ?? stationDevices(),
-        activeDeviceId: `${STATION_PREFIX}${session.entry.deviceId}`,
+        devices: playerDevices(activeDeviceId),
+        activeDeviceId,
         activeDeviceName: session.entry.name
     };
 }
@@ -150,6 +143,9 @@ function scheduleReconnect(session: Session): void {
 async function openSession(session: Session): Promise<void> {
     const { entry } = session;
     const current = ++session.generation;
+
+    if (session.pingTimer) clearInterval(session.pingTimer);
+    session.pingTimer = null;
 
     try {
         const connection = await YnisonSocket.connect(
@@ -216,7 +212,8 @@ function syncSessions(): void {
             player: null,
             pingTimer: null,
             reconnectTimer: null,
-            generation: 0
+            generation: 0,
+            mutedVolume: 0
         };
         sessions.set(deviceId, session);
         void openSession(session);
@@ -260,32 +257,21 @@ export function runStationCommand(name: PlayerCommand, payload: CommandPayload):
         case "seek":
             return send(session, { command: "rewind", position: Math.max(0, Math.round((payload.value ?? 0) / 1000)) });
         case "setVolume":
-            mutedVolume = 0;
+            session.mutedVolume = 0;
             return send(session, { command: "setVolume", volume: Math.min(1, Math.max(0, payload.value ?? 0)) });
         case "toggleMute": {
             const current = Number(session.player?.volume ?? 0);
             if (current > 0) {
-                mutedVolume = current;
+                session.mutedVolume = current;
                 return send(session, { command: "setVolume", volume: 0 });
             }
-            const restored = mutedVolume > 0 ? mutedVolume : 0.5;
-            mutedVolume = 0;
+            const restored = session.mutedVolume > 0 ? session.mutedVolume : 0.5;
+            session.mutedVolume = 0;
             return send(session, { command: "setVolume", volume: restored });
         }
         default:
             return false;
     }
-}
-
-function isLocalHost(host: string): boolean {
-    const parts = host.split(".").map(Number);
-    if (parts.length !== 4 || parts.some(part => !Number.isInteger(part) || part < 0 || part > 255)) return false;
-
-    return parts[0] === 10
-        || parts[0] === 127
-        || (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31)
-        || (parts[0] === 192 && parts[1] === 168)
-        || (parts[0] === 169 && parts[1] === 254);
 }
 
 async function authorize(entries: StationEntry[]): Promise<void> {
@@ -302,10 +288,10 @@ async function authorize(entries: StationEntry[]): Promise<void> {
         log(`Station names unavailable: ${errorMessage(error)}`);
     }
 
-    for (const entry of entries) {
+    await Promise.all(entries.map(async entry => {
         const name = names.get(entry.deviceId);
         if (name) entry.name = name;
-        if (entry.token) continue;
+        if (entry.token) return;
 
         try {
             entry.token = await fetchConversationToken(musicToken, entry.deviceId, entry.platform);
@@ -313,7 +299,7 @@ async function authorize(entries: StationEntry[]): Promise<void> {
             enqueue({ type: "error", message: `Yandex Station auth failed: ${errorMessage(error)}`, at: Date.now() });
             log(`Station token failed for ${entry.name}: ${errorMessage(error)}`);
         }
-    }
+    }));
 }
 
 export async function refreshStations(): Promise<void> {
@@ -326,7 +312,7 @@ export async function refreshStations(): Promise<void> {
 
         const entries: StationEntry[] = [];
         for (const found of discovered) {
-            if (!found.platform || !isLocalHost(found.host)) {
+            if (!found.platform || !isLocalAddress(found.host)) {
                 log(`Skipping ${found.name}: platform "${found.platform}", address ${found.host}`);
                 continue;
             }

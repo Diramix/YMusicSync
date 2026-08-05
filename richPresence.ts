@@ -9,15 +9,16 @@ import { Activity } from "@vencord/discord-types";
 import { ActivityFlags, ActivityStatusDisplayType, ActivityType } from "@vencord/discord-types/enums";
 import { ApplicationAssetUtils, FluxDispatcher, lodash } from "@webpack/common";
 
+import { COVER_SIZE, COVER_SIZE_PLACEHOLDER, lruSet } from "./constants";
 import { settings } from "./settings";
 import { YMusicSyncStore } from "./store";
 
 const APP_ID = "1256145977056821248";
 const DEFAULT_NAME = "Yandex Music";
-const COVER_SIZE = "400x400";
 const NO_FLAGS = 0 as ActivityFlags;
 
 const UPDATE_DELAY = 2000;
+const MAX_ASSET_CACHE_ENTRIES = 64;
 
 let generation = 0;
 let lastKey: string | null = null;
@@ -30,11 +31,11 @@ function trackLink(trackId: string): string {
 }
 
 async function coverAsset(coverUrl: string): Promise<string | undefined> {
-    const url = coverUrl.replace(/(?:%%|\{size\}|%s)/gi, COVER_SIZE);
+    const url = coverUrl.replace(COVER_SIZE_PLACEHOLDER, COVER_SIZE);
     if (assetCache.has(url)) return assetCache.get(url);
 
     const [asset] = await ApplicationAssetUtils.fetchAssetIds(APP_ID, [url]);
-    assetCache.set(url, asset);
+    if (asset) lruSet(assetCache, url, asset, MAX_ASSET_CACHE_ENTRIES);
     return asset;
 }
 
@@ -42,7 +43,7 @@ async function buildActivity(): Promise<Activity | null> {
     const { snapshot } = YMusicSyncStore;
     if (!settings.store.showActivity || !snapshot || !snapshot.isPlaying) return null;
 
-    const name = String(settings.store.activityName ?? "").trim() || DEFAULT_NAME;
+    const name = settings.store.activityName.trim() || DEFAULT_NAME;
     const trackUrl = trackLink(snapshot.trackId);
 
     const activity: Activity = {
@@ -111,6 +112,7 @@ export function stopRichPresence(): void {
     generation++;
     lastKey = null;
     lastStart = 0;
+    assetCache.clear();
     FluxDispatcher.dispatch({
         type: "LOCAL_ACTIVITY_UPDATE",
         activity: null,

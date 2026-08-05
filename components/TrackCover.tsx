@@ -4,28 +4,42 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import type { PluginNative } from "@utils/types";
 import { useEffect, useState } from "@webpack/common";
 
-import { TEXT } from "../constants";
-import { cl } from "./Controls";
-
-const Native = VencordNative.pluginHelpers.YMusicSync as PluginNative<typeof import("../native")> | undefined;
+import { lruSet, TEXT } from "../constants";
+import { cl } from "../css";
+import { Native } from "../nativeBridge";
 
 const RETRY_DELAYS_MS = [2_000, 5_000, 15_000];
+const MAX_CACHE_ENTRIES = 8;
+
+const cache = new Map<string, string>();
+
+async function loadCover(coverUrl: string): Promise<string> {
+    if (!Native) return "";
+
+    const cached = cache.get(coverUrl);
+    if (cached) {
+        lruSet(cache, coverUrl, cached, MAX_CACHE_ENTRIES);
+        return cached;
+    }
+
+    const resolved = await Native.getCoverDataUrl(coverUrl);
+    if (resolved) lruSet(cache, coverUrl, resolved, MAX_CACHE_ENTRIES);
+    return resolved;
+}
 
 export function TrackCover({ coverUrl, title }: { coverUrl: string; title: string; }) {
     const [source, setSource] = useState("");
     const [attempt, setAttempt] = useState(0);
 
-    // Discord's CSP blocks remote covers, so they are fetched in the main process.
     useEffect(() => {
         let cancelled = false;
-        setSource("");
+        setSource(cache.get(coverUrl) ?? "");
         setAttempt(0);
 
-        if (coverUrl && Native) {
-            void Native.getCoverDataUrl(coverUrl).then(resolved => {
+        if (coverUrl) {
+            void loadCover(coverUrl).then(resolved => {
                 if (!cancelled) setSource(resolved);
             });
         }
@@ -35,17 +49,16 @@ export function TrackCover({ coverUrl, title }: { coverUrl: string; title: strin
         };
     }, [coverUrl]);
 
-    // A cover host can be briefly unavailable right after a track change.
     useEffect(() => {
         const delay = RETRY_DELAYS_MS[attempt];
-        if (!coverUrl || source || delay === undefined || !Native) return;
+        if (!coverUrl || source || delay === undefined) return;
 
         let cancelled = false;
         const timer = window.setTimeout(() => {
-            void Native.getCoverDataUrl(coverUrl).then(resolved => {
+            void loadCover(coverUrl).then(resolved => {
                 if (cancelled) return;
-                setAttempt(value => value + 1);
                 if (resolved) setSource(resolved);
+                else setAttempt(value => value + 1);
             });
         }, delay);
 

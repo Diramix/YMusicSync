@@ -5,25 +5,14 @@
  */
 
 import { BaseText } from "@components/BaseText";
-import { classNameFactory } from "@utils/css";
 import { makeLazy } from "@utils/lazy";
-import { Button, React, Slider, Tooltip, useEffect, useRef, useState, useStateFromStores } from "@webpack/common";
+import { formatDurationMs } from "@utils/text";
+import { Button, React, Slider, Tooltip, useEffect, useRef, useState } from "@webpack/common";
 
 import { ICONS, TEXT } from "../constants";
+import { cl } from "../css";
 import { YMusicSyncStore } from "../store";
 import type { PlayerSnapshot } from "../types";
-
-export const cl = classNameFactory("vc-ymsync-");
-
-function formatTime(milliseconds: number): string {
-    const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-
-    const tail = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-    return hours > 0 ? `${hours}:${tail}` : tail;
-}
 
 export function Icon({ path }: { path: string; }) {
     return (
@@ -33,8 +22,6 @@ export function Icon({ path }: { path: string; }) {
     );
 }
 
-// Discord's Button typings only advertise FILLED/LINK, but the runtime component
-// still accepts the chrome-less BLANK look used by panel buttons.
 const blankLook = makeLazy(() => {
     const looks = Button.Looks as Record<string, string>;
     return looks.BLANK ?? looks.LINK;
@@ -81,44 +68,48 @@ export function IconButton({ path, ...props }: { path: string; } & Omit<PanelBut
     );
 }
 
-// Discord's Slider is uncontrolled: remounting it is how an external value change
-// is reflected. The key is frozen while the user drags the handle.
-function useLiveKey(intervalMs: number, live: boolean): [string, (dragging: boolean) => void] {
-    const [tick, setTick] = useState(0);
-    const [frozenKey, setFrozenKey] = useState<string | null>(null);
-    const draggingRef = useRef(false);
+export function ProgressSlider({ snapshot, disabled }: { snapshot: PlayerSnapshot; disabled: boolean; }) {
+    const [, setTick] = useState(0);
+    const [dragging, setDragging] = useState(false);
+    const duration = Math.max(1, snapshot.durationMs);
+
+    const dragPositionRef = useRef(YMusicSyncStore.positionMs);
+    if (!dragging) dragPositionRef.current = YMusicSyncStore.positionMs;
+    const position = dragPositionRef.current;
+
+    const key = `${snapshot.trackId}-${snapshot.isPlaying}`;
 
     useEffect(() => {
-        if (!live) return;
-        const timer = window.setInterval(() => {
-            if (!draggingRef.current) setTick(current => current + 1);
-        }, intervalMs);
-        return () => window.clearInterval(timer);
-    }, [live, intervalMs]);
+        if (!snapshot.isPlaying || dragging) return;
 
-    const key = frozenKey ?? String(tick);
+        let frame: number;
+        let lastSecond = -1;
 
-    return [key, (dragging: boolean) => {
-        draggingRef.current = dragging;
-        setFrozenKey(dragging ? key : null);
-    }];
-}
+        const step = () => {
+            if (!document.hidden) {
+                const second = Math.floor(YMusicSyncStore.positionMs / 1000);
+                if (second !== lastSecond) {
+                    lastSecond = second;
+                    setTick(current => current + 1);
+                }
+            }
+            frame = requestAnimationFrame(step);
+        };
 
-export function ProgressSlider({ snapshot, disabled }: { snapshot: PlayerSnapshot; disabled: boolean; }) {
-    const position = useStateFromStores([YMusicSyncStore], () => YMusicSyncStore.positionMs);
-    const duration = Math.max(1, snapshot.durationMs);
-    const [key, setDragging] = useLiveKey(1000, snapshot.isPlaying);
+        frame = requestAnimationFrame(step);
+        return () => cancelAnimationFrame(frame);
+    }, [snapshot.isPlaying, dragging]);
 
     return (
         <div className={cl("progress")}>
             <div
                 className={cl("progress-track")}
-                onPointerDown={() => setDragging(true)}
-                onPointerUp={() => setDragging(false)}
-                onPointerCancel={() => setDragging(false)}
+                onPointerDownCapture={() => setDragging(true)}
+                onPointerUpCapture={() => setDragging(false)}
+                onPointerCancelCapture={() => setDragging(false)}
             >
                 <Slider
-                    key={`${snapshot.trackId}-${key}`}
+                    key={key}
                     aria-label={TEXT.trackPosition}
                     disabled={disabled}
                     mini
@@ -127,16 +118,19 @@ export function ProgressSlider({ snapshot, disabled }: { snapshot: PlayerSnapsho
                     minValue={0}
                     maxValue={duration}
                     keyboardStep={5000}
-                    onValueRender={(value: number) => formatTime(value)}
-                    onValueChange={(value: number) => YMusicSyncStore.seek(value)}
+                    onValueRender={(value: number) => formatDurationMs(value)}
+                    onValueChange={(value: number) => {
+                        dragPositionRef.current = value;
+                        YMusicSyncStore.seek(value);
+                    }}
                 />
             </div>
             <div className={cl("progress-times")}>
                 <BaseText size="xs" color="text-muted" className={cl("time")}>
-                    {formatTime(position)}
+                    {formatDurationMs(position)}
                 </BaseText>
                 <BaseText size="xs" color="text-muted" className={cl("time")}>
-                    {formatTime(snapshot.durationMs)}
+                    {snapshot.durationMs > 0 ? formatDurationMs(snapshot.durationMs) : "--:--"}
                 </BaseText>
             </div>
         </div>
@@ -149,8 +143,17 @@ function volumeIcon(volume: number): string {
 }
 
 export function VolumeSlider({ snapshot, disabled }: { snapshot: PlayerSnapshot; disabled: boolean; }) {
+    const [dragging, setDragging] = useState(false);
+    const dragVolumeRef = useRef(snapshot.volume);
+    if (!dragging) dragVolumeRef.current = snapshot.volume;
+
     return (
-        <div className={cl("volume")}>
+        <div
+            className={cl("volume")}
+            onPointerDownCapture={() => setDragging(true)}
+            onPointerUpCapture={() => setDragging(false)}
+            onPointerCancelCapture={() => setDragging(false)}
+        >
             <IconButton
                 label={snapshot.volume <= 0 ? TEXT.unmute : TEXT.mute}
                 path={volumeIcon(snapshot.volume)}
@@ -159,15 +162,17 @@ export function VolumeSlider({ snapshot, disabled }: { snapshot: PlayerSnapshot;
             />
             <div className={cl("volume-track")}>
                 <Slider
-                    key={`volume-${snapshot.volume}`}
                     aria-label={TEXT.volume}
                     disabled={disabled}
                     mini
-                    initialValue={snapshot.volume}
+                    initialValue={dragVolumeRef.current}
                     minValue={0}
                     maxValue={100}
                     onValueRender={(value: number) => `${Math.round(value)}%`}
-                    onValueChange={(value: number) => YMusicSyncStore.setVolume(value)}
+                    onValueChange={(value: number) => {
+                        dragVolumeRef.current = value;
+                        YMusicSyncStore.setVolume(value);
+                    }}
                 />
             </div>
         </div>

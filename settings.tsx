@@ -10,6 +10,7 @@ import { Margins } from "@utils/margins";
 import { OptionType } from "@utils/types";
 
 import { updateActivity } from "./richPresence";
+import { YMusicSyncStore } from "./store";
 
 function isValidToken(value: string): true | string {
     const token = value.trim();
@@ -34,14 +35,18 @@ export const settings = definePluginSettings({
         default: "",
         placeholder: "y0_Ag…",
         target: "DESKTOP",
-        isValid: isValidToken
+        isValid: isValidToken,
+        componentProps: {
+            type: "password"
+        }
     },
     hideAfterPauseSeconds: {
         type: OptionType.NUMBER,
         displayName: "Hide after pause",
         description: "Hide the panel after the track has been paused for this many seconds, 0 keeps it always visible",
         default: 300,
-        isValid: value => Number(value) >= 0 || "Time cannot be negative"
+        isValid: value => Number(value) >= 0 || "Enter a number of seconds, zero or more",
+        onChange: () => YMusicSyncStore.refreshPauseHide()
     },
     showVolume: {
         type: OptionType.BOOLEAN,
@@ -70,6 +75,7 @@ export const settings = definePluginSettings({
     activityName: {
         type: OptionType.STRING,
         displayName: "Activity name",
+        description: "Name shown above the track in your profile",
         default: "Yandex Music",
         onChange: () => void updateActivity()
     }

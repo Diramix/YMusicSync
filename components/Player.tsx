@@ -8,16 +8,18 @@ import { plugins } from "@api/PluginManager";
 import { BaseText } from "@components/BaseText";
 import { CogWheel, ScreenshareIcon } from "@components/Icons";
 import { openPluginModal } from "@components/settings/tabs/plugins/PluginModal";
-import { ContextMenuApi, Menu, useEffect, useStateFromStores } from "@webpack/common";
+import { ContextMenuApi, Menu, useStateFromStores } from "@webpack/common";
 
 import { ICONS, TEXT } from "../constants";
+import { cl } from "../css";
 import { settings } from "../settings";
 import { YMusicSyncStore } from "../store";
 import type { PlayerDevice } from "../types";
-import { cl, IconButton, PanelButton, ProgressSlider, VolumeSlider } from "./Controls";
+import { IconButton, PanelButton, ProgressSlider, VolumeSlider } from "./Controls";
 import { TrackCover } from "./TrackCover";
 
-const SETTING_KEYS: ("showVolume" | "hideAfterPauseSeconds")[] = ["showVolume", "hideAfterPauseSeconds"];
+const SETTING_KEYS: Array<"showVolume"> = ["showVolume"];
+const NO_DEVICES: PlayerDevice[] = [];
 
 function openSettings(): void {
     const plugin = plugins.YMusicSync;
@@ -25,8 +27,9 @@ function openSettings(): void {
 }
 
 function DeviceMenu() {
-    const devices = useStateFromStores<PlayerDevice[]>([YMusicSyncStore], () => YMusicSyncStore.snapshot?.devices ?? []);
-    const activeId = useStateFromStores([YMusicSyncStore], () => YMusicSyncStore.snapshot?.activeDeviceId ?? "");
+    const snapshot = useStateFromStores([YMusicSyncStore], () => YMusicSyncStore.snapshot);
+    const devices = snapshot?.devices ?? NO_DEVICES;
+    const activeId = snapshot?.activeDeviceId ?? "";
 
     return (
         <Menu.Menu navId="vc-ymsync-devices" onClose={ContextMenuApi.closeContextMenu} aria-label={TEXT.devices}>
@@ -50,14 +53,17 @@ function DeviceMenu() {
 }
 
 export function YMusicSyncPlayer() {
-    const { showVolume, hideAfterPauseSeconds } = settings.use(SETTING_KEYS);
-    const snapshot = useStateFromStores([YMusicSyncStore], () => YMusicSyncStore.snapshot);
-    const hidden = useStateFromStores([YMusicSyncStore], () => YMusicSyncStore.hiddenByPause);
-    const hasPlayed = useStateFromStores([YMusicSyncStore], () => YMusicSyncStore.hasPlayed);
-
-    useEffect(() => {
-        YMusicSyncStore.refreshPauseHide();
-    }, [hideAfterPauseSeconds]);
+    const { showVolume } = settings.use(SETTING_KEYS);
+    const { snapshot, hidden, hasPlayed } = useStateFromStores(
+        [YMusicSyncStore],
+        () => ({
+            snapshot: YMusicSyncStore.snapshot,
+            hidden: YMusicSyncStore.hiddenByPause,
+            hasPlayed: YMusicSyncStore.hasPlayed
+        }),
+        undefined,
+        (a, b) => a.snapshot === b.snapshot && a.hidden === b.hidden && a.hasPlayed === b.hasPlayed
+    );
 
     if (!snapshot?.trackId || !hasPlayed || hidden) return null;
 
@@ -77,7 +83,7 @@ export function YMusicSyncPlayer() {
                     </BaseText>
                 </div>
                 <PanelButton
-                    label={`${snapshot.activeDeviceName || TEXT.unknownDevice}`}
+                    label={snapshot.activeDeviceName || TEXT.unknownDevice}
                     onClick={event => ContextMenuApi.openContextMenu(event, () => <DeviceMenu />)}
                 >
                     <ScreenshareIcon className={cl("icon")} />

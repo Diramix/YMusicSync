@@ -7,15 +7,14 @@
 import { SettingsStore } from "@api/Settings";
 import { Logger } from "@utils/Logger";
 import { sleep } from "@utils/misc";
-import type { PluginNative } from "@utils/types";
 import { proxyLazyWebpack } from "@webpack";
 import { Flux, FluxDispatcher, lodash } from "@webpack/common";
 
+import { Native } from "./nativeBridge";
 import { settings } from "./settings";
 import type { CommandPayload, PlayerCommand, PlayerSnapshot, RepeatMode, YnisonEvent, YnisonStatus } from "./types";
 
 const logger = new Logger("YMusicSync", "#ffcc00");
-const Native = VencordNative.pluginHelpers.YMusicSync as PluginNative<typeof import("./native")> | undefined;
 
 const LISTEN_TIMEOUT_MS = 30_000;
 const LISTEN_RETRY_MS = 1_000;
@@ -41,6 +40,7 @@ export const YMusicSyncStore = proxyLazyWebpack(() => {
         public hiddenByPause = false;
         public hasPlayed = false;
 
+        private serverSnapshot: PlayerSnapshot | null = null;
         private pauseTimer: number | null = null;
         private pausedSince: number | null = null;
         private active = false;
@@ -51,7 +51,7 @@ export const YMusicSyncStore = proxyLazyWebpack(() => {
         private positionAnchorAt = Date.now();
 
         public get hasToken(): boolean {
-            return String(settings.store.oauthToken ?? "").trim().length > 0;
+            return settings.store.oauthToken.trim().length > 0;
         }
 
         public get connectionState(): YnisonStatus["state"] {
@@ -93,6 +93,7 @@ export const YMusicSyncStore = proxyLazyWebpack(() => {
 
         public async stop(): Promise<void> {
             this.active = false;
+            this.listenGeneration++;
             SettingsStore.removeChangeListener(TOKEN_SETTING_PATH, this.onTokenSettingChange);
             if (this.pauseTimer !== null) window.clearTimeout(this.pauseTimer);
             this.pauseTimer = null;
@@ -111,6 +112,7 @@ export const YMusicSyncStore = proxyLazyWebpack(() => {
             this.connected = false;
             this.hasPlayed = false;
             this.snapshot = null;
+            this.serverSnapshot = null;
             this.emitChange();
         }
 
@@ -204,39 +206,42 @@ export const YMusicSyncStore = proxyLazyWebpack(() => {
         }
 
         public async applyToken(): Promise<void> {
-            if (!Native || !this.active) return;
-
-            const token = String(settings.store.oauthToken ?? "").trim();
-            if (token === this.appliedToken) return;
-            this.appliedToken = token;
-
-            try {
-                this.status = await Native.connect(token);
+            await this.syncToken("appliedToken", async token => {
+                this.status = await Native!.connect(token);
                 this.connected = this.status.state === "connected";
                 this.lastError = this.status.lastError;
                 logger.info("Ynison status:", this.status);
-            } catch (error) {
+            }, error => {
                 this.connected = false;
                 this.lastError = errorMessage(error);
                 logger.error("Ynison connect failed:", error);
-            }
-            this.emitChange();
+            });
         }
 
         public async applyStationToken(): Promise<void> {
-            if (!Native || !this.active) return;
-
-            const token = String(settings.store.oauthToken ?? "").trim();
-            if (token === this.appliedStationToken) return;
-            this.appliedStationToken = token;
-
-            try {
-                await Native.connectStations(token);
-            } catch (error) {
+            await this.syncToken("appliedStationToken", token => Native!.connectStations(token), error => {
                 this.lastError = errorMessage(error);
                 logger.error("Station lookup failed:", error);
-                this.emitChange();
+            });
+        }
+
+        private async syncToken(
+            appliedKey: "appliedToken" | "appliedStationToken",
+            action: (token: string) => Promise<void>,
+            onError: (error: unknown) => void
+        ): Promise<void> {
+            if (!Native || !this.active) return;
+
+            const token = settings.store.oauthToken.trim();
+            if (token === this[appliedKey]) return;
+            this[appliedKey] = token;
+
+            try {
+                await action(token);
+            } catch (error) {
+                onError(error);
             }
+            this.emitChange();
         }
 
         public async rescanStations(): Promise<void> {
@@ -266,8 +271,8 @@ export const YMusicSyncStore = proxyLazyWebpack(() => {
                     continue;
                 }
 
-                for (const event of events) this.handleEvent(event);
                 if (!this.active || generation !== this.listenGeneration) return;
+                for (const event of events) this.handleEvent(event);
             }
         }
 
@@ -297,6 +302,7 @@ export const YMusicSyncStore = proxyLazyWebpack(() => {
         }
 
         private applySnapshot(raw: PlayerSnapshot): void {
+            this.serverSnapshot = raw;
             const snapshot = { ...raw, volume: lodash.clamp(Math.round(raw.volume * 100), 0, 100) };
 
             if (!snapshot.title) snapshot.title = this.snapshot?.title ?? FALLBACK_TITLE;
@@ -317,7 +323,7 @@ export const YMusicSyncStore = proxyLazyWebpack(() => {
                 this.pauseTimer = null;
             }
 
-            const delay = Number(settings.store.hideAfterPauseSeconds) * 1000;
+            const delay = settings.store.hideAfterPauseSeconds * 1000;
             if (this.snapshot?.isPlaying || delay <= 0) {
                 this.pausedSince = null;
                 this.hiddenByPause = false;
@@ -340,9 +346,9 @@ export const YMusicSyncStore = proxyLazyWebpack(() => {
 
         private optimistic(partial: Partial<PlayerSnapshot>): void {
             if (!this.snapshot) return;
-            const next = { ...this.snapshot, ...partial };
-            this.snapshot = next;
-            this.positionAnchorMs = next.positionMs;
+            const position = partial.positionMs ?? this.positionMs;
+            this.snapshot = { ...this.snapshot, ...partial, positionMs: position };
+            this.positionAnchorMs = position;
             this.positionAnchorAt = Date.now();
             this.schedulePauseHide();
             this.emitChange();
@@ -350,13 +356,17 @@ export const YMusicSyncStore = proxyLazyWebpack(() => {
 
         private async command(name: PlayerCommand, payload: CommandPayload = {}): Promise<boolean> {
             if (!Native) return false;
+
+            let accepted = false;
             try {
-                return await Native.command(name, payload);
+                accepted = await Native.command(name, payload);
             } catch (error) {
                 this.lastError = errorMessage(error);
                 this.emitChange();
-                return false;
             }
+
+            if (!accepted && this.serverSnapshot) this.applySnapshot(this.serverSnapshot);
+            return accepted;
         }
     }
 

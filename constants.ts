@@ -4,6 +4,17 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+export const COVER_SIZE = "400x400";
+export const COVER_SIZE_PLACEHOLDER = /(?:%25%25|%%|%257Bsize%257D|%7Bsize%7D|\{size\}|%25s|%s)/gi;
+
+export function lruSet<T>(map: Map<string, T>, key: string, value: T, max: number): void {
+    map.delete(key);
+    map.set(key, value);
+    while (map.size > max) {
+        map.delete(map.keys().next().value as string);
+    }
+}
+
 export const ICONS = {
     play: "M8 5.82v12.36c0 .79.87 1.27 1.54.84l9.14-6.18a1 1 0 0 0 0-1.68L9.54 4.98C8.87 4.55 8 5.03 8 5.82z",
     pause: "M7 5h3v14H7V5zm7 0h3v14h-3V5z",

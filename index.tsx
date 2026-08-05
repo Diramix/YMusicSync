@@ -17,10 +17,15 @@ import style from "./styles.css?managed";
 
 const SliderClasses = findCssClassesLazy("slider", "bar", "barFill", "grabber");
 
+interface PanelWrapperProps {
+    YMusicSync: React.ComponentType<Record<string, unknown>>;
+    [key: string]: unknown;
+}
+
 export default definePlugin({
     name: "YMusicSync",
     description: "Control Yandex Music through Ynison and Discord RPC",
-    authors: [{ name: "diram1x", id: 0n }],
+    authors: [{ name: "diram1x", id: 710580442180485120 }],
     tags: ["Media", "Utility"],
     searchTerms: ["Yandex Music", "Ynison", "YMusicSync", "Music Controls"],
     settings,
@@ -36,16 +41,14 @@ export default definePlugin({
         }
     ],
 
-    PanelWrapper({ YMusicSync, ...props }) {
-        return (
-            <>
-                <ErrorBoundary noop>
-                    <YMusicSyncPlayer />
-                </ErrorBoundary>
-                <YMusicSync {...props} />
-            </>
-        );
-    },
+    PanelWrapper: ErrorBoundary.wrap(({ YMusicSync, ...props }: PanelWrapperProps) => (
+        <>
+            <ErrorBoundary noop>
+                <YMusicSyncPlayer />
+            </ErrorBoundary>
+            <YMusicSync {...props} />
+        </>
+    ), { noop: true }),
 
     start() {
         setStyleClassNames(style, { ...SliderClasses }, false);
