@@ -28,6 +28,12 @@ function RichPresenceSection() {
 }
 
 export const settings = definePluginSettings({
+    showPanel: {
+        type: OptionType.BOOLEAN,
+        displayName: "Show player panel",
+        description: "Show the player panel above the account panel",
+        default: true
+    },
     oauthToken: {
         type: OptionType.STRING,
         displayName: "Yandex Music OAuth token",

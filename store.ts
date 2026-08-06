@@ -19,6 +19,8 @@ const logger = new Logger("YMusicSync", "#ffcc00");
 const LISTEN_TIMEOUT_MS = 30_000;
 const LISTEN_RETRY_MS = 1_000;
 const FALLBACK_TITLE = "Яндекс Музыка";
+const SEEK_CONFIRM_TIMEOUT = 5_000;
+const SEEK_CONFIRM_TOLERANCE = 2_000;
 
 const MISSING_NATIVE =
     "Native helper YMusicSync not found. Run pnpm build, then pnpm inject and fully restart Discord";
@@ -49,6 +51,8 @@ export const YMusicSyncStore = proxyLazyWebpack(() => {
         private appliedStationToken: string | null = null;
         private positionAnchorMs = 0;
         private positionAnchorAt = Date.now();
+        private pendingSeekMs: number | null = null;
+        private pendingSeekAt = 0;
 
         public get hasToken(): boolean {
             return settings.store.oauthToken.trim().length > 0;
@@ -188,6 +192,8 @@ export const YMusicSyncStore = proxyLazyWebpack(() => {
             if (!this.snapshot) return;
             const { durationMs } = this.snapshot;
             const target = lodash.clamp(Math.round(positionMs), 0, durationMs > 0 ? durationMs : Number.MAX_SAFE_INTEGER);
+            this.pendingSeekMs = target;
+            this.pendingSeekAt = Date.now();
             this.optimistic({ positionMs: target });
             void this.command("seek", { value: target });
         }
@@ -307,8 +313,22 @@ export const YMusicSyncStore = proxyLazyWebpack(() => {
 
             if (!snapshot.title) snapshot.title = this.snapshot?.title ?? FALLBACK_TITLE;
 
-            if (snapshot.trackId !== this.snapshot?.trackId) this.pausedSince = null;
+            const trackChanged = snapshot.trackId !== this.snapshot?.trackId;
+            if (trackChanged) {
+                this.pausedSince = null;
+                this.pendingSeekMs = null;
+            }
             if (snapshot.isPlaying) this.hasPlayed = true;
+
+            if (this.pendingSeekMs !== null) {
+                const elapsed = Date.now() - this.pendingSeekAt;
+                if (elapsed > SEEK_CONFIRM_TIMEOUT || Math.abs(snapshot.positionMs - this.pendingSeekMs) <= SEEK_CONFIRM_TOLERANCE) {
+                    this.pendingSeekMs = null;
+                } else {
+                    snapshot.positionMs = this.pendingSeekMs + (snapshot.isPlaying ? elapsed : 0);
+                }
+            }
+
             this.snapshot = snapshot;
             this.positionAnchorMs = snapshot.positionMs;
             this.positionAnchorAt = Date.now();

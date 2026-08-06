@@ -77,7 +77,13 @@ export function ProgressSlider({ snapshot, disabled }: { snapshot: PlayerSnapsho
     if (!dragging) dragPositionRef.current = YMusicSyncStore.positionMs;
     const position = dragPositionRef.current;
 
-    const key = `${snapshot.trackId}-${snapshot.isPlaying}`;
+    const endDrag = () => {
+        window.setTimeout(() => setDragging(false), 0);
+    };
+
+    const keySecondRef = useRef(0);
+    if (!dragging) keySecondRef.current = Math.floor(position / 1000);
+    const key = `${snapshot.trackId}-${snapshot.isPlaying}-${keySecondRef.current}`;
 
     useEffect(() => {
         if (!snapshot.isPlaying || dragging) return;
@@ -105,8 +111,8 @@ export function ProgressSlider({ snapshot, disabled }: { snapshot: PlayerSnapsho
             <div
                 className={cl("progress-track")}
                 onPointerDownCapture={() => setDragging(true)}
-                onPointerUpCapture={() => setDragging(false)}
-                onPointerCancelCapture={() => setDragging(false)}
+                onPointerUpCapture={endDrag}
+                onPointerCancelCapture={endDrag}
             >
                 <Slider
                     key={key}

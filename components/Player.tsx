@@ -18,7 +18,7 @@ import type { PlayerDevice } from "../types";
 import { IconButton, PanelButton, ProgressSlider, VolumeSlider } from "./Controls";
 import { TrackCover } from "./TrackCover";
 
-const SETTING_KEYS: Array<"showVolume"> = ["showVolume"];
+const SETTING_KEYS = ["showPanel", "showVolume"] as const;
 const NO_DEVICES: PlayerDevice[] = [];
 
 function openSettings(): void {
@@ -53,7 +53,7 @@ function DeviceMenu() {
 }
 
 export function YMusicSyncPlayer() {
-    const { showVolume } = settings.use(SETTING_KEYS);
+    const { showPanel, showVolume } = settings.use(SETTING_KEYS);
     const { snapshot, hidden, hasPlayed } = useStateFromStores(
         [YMusicSyncStore],
         () => ({
@@ -65,7 +65,7 @@ export function YMusicSyncPlayer() {
         (a, b) => a.snapshot === b.snapshot && a.hidden === b.hidden && a.hasPlayed === b.hasPlayed
     );
 
-    if (!snapshot?.trackId || !hasPlayed || hidden) return null;
+    if (!showPanel || !snapshot?.trackId || !hasPlayed || hidden) return null;
 
     const target = snapshot.devices.find(device => device.id === snapshot.activeDeviceId);
     const idle = !snapshot.activeDeviceId || (target !== undefined && !target.canBePlayer);
