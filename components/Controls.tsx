@@ -153,6 +153,9 @@ export function VolumeSlider({ snapshot, disabled }: { snapshot: PlayerSnapshot;
     const dragVolumeRef = useRef(snapshot.volume);
     if (!dragging) dragVolumeRef.current = snapshot.volume;
 
+    const keyVolumeRef = useRef(snapshot.volume);
+    if (!dragging) keyVolumeRef.current = snapshot.volume;
+
     return (
         <div
             className={cl("volume")}
@@ -168,6 +171,7 @@ export function VolumeSlider({ snapshot, disabled }: { snapshot: PlayerSnapshot;
             />
             <div className={cl("volume-track")}>
                 <Slider
+                    key={keyVolumeRef.current}
                     aria-label={TEXT.volume}
                     disabled={disabled}
                     mini
