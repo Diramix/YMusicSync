@@ -5,9 +5,10 @@
  */
 
 import { definePluginSettings } from "@api/Settings";
-import { Divider, Heading } from "@components/index";
+import { Divider, Heading, Notice } from "@components/index";
 import { Margins } from "@utils/margins";
 import { OptionType } from "@utils/types";
+import { MaskedLink } from "@webpack/common";
 
 import { updateActivity } from "./richPresence";
 import { YMusicSyncStore } from "./store";
@@ -27,7 +28,20 @@ function RichPresenceSection() {
     );
 }
 
+function WarningSection() {
+    return (
+        <Notice.Warning className={Margins.bottom16}>
+            This plugin requires Ynison player control to be enabled in Yandex Music PC client. Recommend using{" "}
+            <MaskedLink href="https://pulsesync.dev/">PulseSync</MaskedLink> to enable it
+        </Notice.Warning>
+    );
+}
+
 export const settings = definePluginSettings({
+    warningSection: {
+        type: OptionType.COMPONENT,
+        component: WarningSection
+    },
     showPanel: {
         type: OptionType.BOOLEAN,
         displayName: "Show player panel",

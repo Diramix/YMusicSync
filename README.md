@@ -1,5 +1,8 @@
 # YMusicSync - A plugin for [Equicord](https://equicord.org/) 
 
+> [!WARNING]
+> This plugin requires Ynison player control to be enabled in Yandex Music PC client. Recommend using [PulseSync](https://pulsesync.dev/) to enable it
+
 ## Features
 
 - **Track control panel above the account panel**
