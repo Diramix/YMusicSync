@@ -63,7 +63,7 @@ export const settings = definePluginSettings({
     showSettingsButton: {
         type: OptionType.BOOLEAN,
         displayName: "Show settings button",
-        description: "Show the gear button that opens the plugin settings from the panel.",
+        description: "Show the gear button that opens the plugin settings from the panel",
         default: true
     },
     richPresenceSection: {

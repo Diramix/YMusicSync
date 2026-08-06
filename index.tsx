@@ -6,6 +6,7 @@
 
 import { disableStyle, enableStyle, setStyleClassNames } from "@api/Styles";
 import ErrorBoundary from "@components/ErrorBoundary";
+import { EquicordDevs } from "@utils/constants";
 import definePlugin, { ReporterTestable } from "@utils/types";
 import { findCssClassesLazy } from "@webpack";
 
@@ -25,7 +26,7 @@ interface PanelWrapperProps {
 export default definePlugin({
     name: "YMusicSync",
     description: "Control Yandex Music through Ynison and Discord RPC",
-    authors: [{ name: "diram1x", id: 710580442180485120 }],
+    authors: [EquicordDevs.diram1x],
     tags: ["Media", "Utility"],
     searchTerms: ["Yandex Music", "Ynison", "YMusicSync", "Music Controls"],
     settings,

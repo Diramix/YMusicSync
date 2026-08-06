@@ -1,7 +1,3 @@
-<p align="center">
-  <img width="753" height="371" alt="image" src="https://github.com/user-attachments/assets/b91ac9de-91f4-41dd-b5c3-95b7dcd76cd2" />
-</p>
-
 # YMusicSync - A plugin for [Equicord](https://equicord.org/) 
 
 ## Features

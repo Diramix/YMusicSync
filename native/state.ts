@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { Logger } from "@utils/Logger";
+
 import type { PlayerSnapshot, StationEntry, YnisonStatus } from "../types";
 import type { YnisonSocket } from "./ynisonSocket";
 import type { YnisonState } from "./ynisonTypes";
@@ -31,8 +33,10 @@ export function errorMessage(error: unknown): string {
     return error instanceof Error ? error.message : String(error);
 }
 
+const logger = new Logger("YMusicSync/native");
+
 export function log(message: string): void {
-    console.log(`[YMusicSync/native] ${message}`);
+    logger.info(message);
 }
 
 let connectionOperation: Promise<void> = Promise.resolve();
