@@ -18,7 +18,7 @@ import type { PlayerDevice } from "../types";
 import { IconButton, PanelButton, ProgressSlider, VolumeSlider } from "./Controls";
 import { TrackCover } from "./TrackCover";
 
-const SETTING_KEYS = ["showPanel", "showVolume"] as const;
+const SETTING_KEYS = ["showPanel", "showVolume", "showSettingsButton"] as const;
 const NO_DEVICES: PlayerDevice[] = [];
 
 function openSettings(): void {
@@ -53,7 +53,7 @@ function DeviceMenu() {
 }
 
 export function YMusicSyncPlayer() {
-    const { showPanel, showVolume } = settings.use(SETTING_KEYS);
+    const { showPanel, showVolume, showSettingsButton } = settings.use(SETTING_KEYS);
     const { snapshot, hidden, hasPlayed } = useStateFromStores(
         [YMusicSyncStore],
         () => ({
@@ -88,9 +88,11 @@ export function YMusicSyncPlayer() {
                 >
                     <ScreenshareIcon className={cl("icon")} />
                 </PanelButton>
-                <PanelButton label={TEXT.settings} onClick={openSettings}>
-                    <CogWheel className={cl("icon")} />
-                </PanelButton>
+                {showSettingsButton && (
+                    <PanelButton label={TEXT.settings} onClick={openSettings}>
+                        <CogWheel className={cl("icon")} />
+                    </PanelButton>
+                )}
             </div>
 
             <ProgressSlider snapshot={snapshot} disabled={idle} />

@@ -60,6 +60,12 @@ export const settings = definePluginSettings({
         description: "Show the volume slider under the playback controls",
         default: true
     },
+    showSettingsButton: {
+        type: OptionType.BOOLEAN,
+        displayName: "Show settings button",
+        description: "Show the gear button that opens the plugin settings from the panel.",
+        default: true
+    },
     richPresenceSection: {
         type: OptionType.COMPONENT,
         component: RichPresenceSection
